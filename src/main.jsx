@@ -134,8 +134,9 @@ function BrandCard({ brand, projects, jobs, onOpen }) {
   </article>;
 }
 
-function ProjectCard({ project, repoState }) {
+function ProjectCard({ project }) {
   const meta = BRAND_META[project.brand];
+  const repoState = project.repo_state?.ok ? project.repo_state : null;
   return <article className="project-card">
     <div className="project-card-top"><span className={`brand-chip tone-${meta.tone}`}>{meta.short}</span><span className={`status-chip status-${project.status}`}>{project.status}</span></div>
     <div><h3>{project.name}</h3><p>{project.summary}</p></div>
@@ -218,7 +219,7 @@ function Dashboard({ session, onLogout }) {
   const [projects, setProjects] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [jobs, setJobs] = useState([]);
-  const [repoStates, setRepoStates] = useState({});
+  const [syncRun, setSyncRun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
@@ -228,35 +229,33 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
+      supabase.from("founder_sync_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
     if (jobResult.data) setJobs(jobResult.data);
+    if (syncResult.data) setSyncRun(syncResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  useEffect(() => {
-    if (!projects.length) return;
-    let cancelled = false;
-    Promise.all(projects.filter((project) => project.repo_url).map(async (project) => {
-      const repo = project.repo_url.replace("https://github.com/", "");
-      try {
-        const response = await fetch(`https://api.github.com/repos/${repo}`, { headers: { Accept: "application/vnd.github+json" } });
-        if (!response.ok) return [project.id, null];
-        return [project.id, await response.json()];
-      } catch { return [project.id, null]; }
-    })).then((entries) => { if (!cancelled) setRepoStates(Object.fromEntries(entries)); });
-    return () => { cancelled = true; };
-  }, [projects]);
+  async function refreshCloud() {
+    setSyncing(true);
+    setError("");
+    const { error: syncError } = await supabase.functions.invoke("founder-dashboard-sync", {
+      body: { source: "dashboard-manual", force: true },
+    });
+    if (syncError) setError("The cloud health check could not finish. Your saved dashboard data is still available.");
+    await loadData();
+  }
 
   async function updateJob(id, status) {
     const previous = jobs;
@@ -294,7 +293,7 @@ function Dashboard({ session, onLogout }) {
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation" type="button"><Icon name="menu" /></button>
         <div><p className="eyebrow">{new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" }).format(new Date())}</p><h1>{NAV_ITEMS.find(([id]) => id === view)?.[1]}</h1></div>
-        <div className="topbar-actions"><span className="sync-label"><i className={syncing ? "syncing" : ""} /> {syncing ? "Syncing" : "Cloud current"}</span><button className="icon-button" onClick={loadData} disabled={syncing} type="button" aria-label="Refresh cloud data"><Icon name="refresh" /></button><button className="primary-button compact-button" onClick={() => setComposerOpen(true)} type="button"><Icon name="plus" /> Add job</button></div>
+        <div className="topbar-actions"><span className="sync-label"><i className={syncing ? "syncing" : ""} /> {syncing ? "Syncing" : syncRun?.finished_at ? `Cloud checked ${timeAgo(syncRun.finished_at).toLowerCase()}` : "Cloud connected"}</span><button className="icon-button" onClick={refreshCloud} disabled={syncing} type="button" aria-label="Run cloud health check"><Icon name="refresh" /></button><button className="primary-button compact-button" onClick={() => setComposerOpen(true)} type="button"><Icon name="plus" /> Add job</button></div>
       </header>
       <div className="content">
         {error && <div className="error-banner" role="alert">{error}<button onClick={() => setError("")} type="button">Dismiss</button></div>}
@@ -309,13 +308,13 @@ function Dashboard({ session, onLogout }) {
             <div className="brand-grid">{BRAND_ORDER.map((brand) => <BrandCard key={brand} brand={brand} projects={projects.filter((project) => project.brand === brand)} jobs={jobs} onOpen={openBrand} />)}</div>
             <div className="overview-split">
               <section><div className="section-heading compact-heading"><div><p className="eyebrow">Operating rhythm</p><h2>Scheduled reminders</h2></div><button className="text-action" onClick={() => navigate("schedule")} type="button">Full schedule <Icon name="arrow" size={16} /></button></div><div className="schedule-list">{schedules.slice(0, 2).map((item) => <ScheduleCard item={item} key={item.id} />)}</div></section>
-              <section className="system-panel"><div><p className="eyebrow">Cloud infrastructure</p><h2>Always available</h2><p>The dashboard and its data stay online when your Mac is closed. GitHub Pages serves the interface; Supabase protects and syncs your founder data.</p></div><div className="system-lines"><span><Icon name="cloud" /> Database and authentication <b>Online</b></span><span><Icon name="github" /> Project source and hosting <b>Online</b></span><span><Icon name="clock" /> Codex reminder mirror <b>{schedules.length} active</b></span></div></section>
+              <section className="system-panel"><div><p className="eyebrow">Cloud infrastructure</p><h2>Always available</h2><p>The dashboard and its data stay online when your Mac is closed. GitHub Pages serves the interface; Supabase protects your founder data and verifies project health throughout the day.</p></div><div className="system-lines"><span><Icon name="cloud" /> Database and authentication <b>Online</b></span><span><Icon name="github" /> Automatic project checks <b>{syncRun?.finished_at ? timeAgo(syncRun.finished_at) : "Starting"}</b></span><span><Icon name="clock" /> Codex reminder mirror <b>{schedules.length} active</b></span></div></section>
             </div>
           </section>}
 
           {view === "projects" && <section className="view-stack">
-            <div className="page-lead"><div><p className="eyebrow">Verified August 19, 2026</p><h2>Important project snapshot</h2><p>The highest-value public systems and operating assets across your three brands.</p></div><div className="filter-tabs" aria-label="Filter projects"><button className={brandFilter === "all" ? "active" : ""} onClick={() => setBrandFilter("all")} type="button">All</button>{BRAND_ORDER.map((brand) => <button className={brandFilter === brand ? "active" : ""} onClick={() => setBrandFilter(brand)} key={brand} type="button">{BRAND_META[brand].short}</button>)}</div></div>
-            <div className="projects-grid">{filteredProjects.map((project) => <ProjectCard project={project} repoState={repoStates[project.id]} key={project.id} />)}</div>
+            <div className="page-lead"><div><p className="eyebrow">{syncRun?.finished_at ? `Cloud verified ${formatDate(syncRun.finished_at, { year: true, time: true })}` : "Cloud verification starting"}</p><h2>Important project snapshot</h2><p>The highest-value public systems and operating assets across your three brands.</p></div><div className="filter-tabs" aria-label="Filter projects"><button className={brandFilter === "all" ? "active" : ""} onClick={() => setBrandFilter("all")} type="button">All</button>{BRAND_ORDER.map((brand) => <button className={brandFilter === brand ? "active" : ""} onClick={() => setBrandFilter(brand)} key={brand} type="button">{BRAND_META[brand].short}</button>)}</div></div>
+            <div className="projects-grid">{filteredProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div>
           </section>}
 
           {view === "schedule" && <section className="view-stack">
