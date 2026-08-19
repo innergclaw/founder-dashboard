@@ -59,6 +59,17 @@ function timeAgo(value) {
   return `Updated ${days} days ago`;
 }
 
+function syncAge(value) {
+  if (!value) return "not yet";
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 2) return "just now";
+  if (minutes < 60) return `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
+}
+
 function greeting() {
   const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }).format(new Date()));
   if (hour < 12) return "Good morning";
@@ -293,7 +304,7 @@ function Dashboard({ session, onLogout }) {
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation" type="button"><Icon name="menu" /></button>
         <div><p className="eyebrow">{new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" }).format(new Date())}</p><h1>{NAV_ITEMS.find(([id]) => id === view)?.[1]}</h1></div>
-        <div className="topbar-actions"><span className="sync-label"><i className={syncing ? "syncing" : ""} /> {syncing ? "Syncing" : syncRun?.finished_at ? `Cloud checked ${timeAgo(syncRun.finished_at).toLowerCase()}` : "Cloud connected"}</span><button className="icon-button" onClick={refreshCloud} disabled={syncing} type="button" aria-label="Run cloud health check"><Icon name="refresh" /></button><button className="primary-button compact-button" onClick={() => setComposerOpen(true)} type="button"><Icon name="plus" /> Add job</button></div>
+        <div className="topbar-actions"><span className="sync-label"><i className={syncing ? "syncing" : ""} /> {syncing ? "Syncing" : syncRun?.finished_at ? `Cloud checked ${syncAge(syncRun.finished_at)}` : "Cloud connected"}</span><button className="icon-button" onClick={refreshCloud} disabled={syncing} type="button" aria-label="Run cloud health check"><Icon name="refresh" /></button><button className="primary-button compact-button" onClick={() => setComposerOpen(true)} type="button"><Icon name="plus" /> Add job</button></div>
       </header>
       <div className="content">
         {error && <div className="error-banner" role="alert">{error}<button onClick={() => setError("")} type="button">Dismiss</button></div>}
