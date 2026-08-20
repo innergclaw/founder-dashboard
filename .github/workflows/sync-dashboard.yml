@@ -42,10 +42,21 @@ jobs:
           BRIEF_URL: https://zkyhhoxcrjkhywblzehr.supabase.co/functions/v1/founder-daily-brief
           SUPABASE_ANON_JWT: ${{ secrets.SUPABASE_ANON_JWT }}
           BRIEF_MODE: ${{ inputs.brief_mode || 'auto' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           test -n "$SUPABASE_ANON_JWT"
-          curl --fail-with-body --silent --show-error \
+          BRIEF_RESPONSE=$(curl --fail-with-body --silent --show-error \
             --request POST "$BRIEF_URL" \
             --header "Authorization: Bearer $SUPABASE_ANON_JWT" \
             --header "Content-Type: application/json" \
-            --data "{\"mode\":\"$BRIEF_MODE\"}"
+            --data "{\"mode\":\"$BRIEF_MODE\",\"deliver\":false}")
+          echo "$BRIEF_RESPONSE" | jq --exit-status '.ok == true' >/dev/null
+          if [ "$(echo "$BRIEF_RESPONSE" | jq --raw-output '.telegram_due')" = "true" ]; then
+            test -n "$TELEGRAM_BOT_TOKEN"
+            test -n "$TELEGRAM_CHAT_ID"
+            echo "$BRIEF_RESPONSE" | jq --raw-output '.message' | curl --fail-with-body --silent --show-error \
+              --request POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+              --data-urlencode text@- \
+              --data-urlencode "disable_web_page_preview=true" >/dev/null
