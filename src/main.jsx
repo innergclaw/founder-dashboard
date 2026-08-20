@@ -7,6 +7,7 @@ const FOUNDER_ID = "75677100-97b7-4578-92c5-cf131997b580";
 const BRAND_ORDER = ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX"];
 const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
+  ["briefing", "Briefing", "bell"],
   ["projects", "Projects", "layers"],
   ["schedule", "Schedule", "calendar"],
   ["jobs", "Jobs", "check"],
@@ -35,6 +36,10 @@ function Icon({ name, size = 18 }) {
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
     close: <path d="m6 6 12 12M18 6 6 18"/>,
     menu: <path d="M4 7h16M4 12h16M4 17h16"/>,
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
+    sunrise: <><path d="M12 2v3M4.2 6.2l2.1 2.1M2 14h3M19 14h3M17.7 8.3l2.1-2.1"/><path d="M5 18a7 7 0 0 1 14 0M3 22h18"/></>,
+    message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></>,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
   };
   return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.grid}</svg>;
 }
@@ -68,6 +73,16 @@ function syncAge(value) {
   if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "day" : "days"} ago`;
+}
+
+function alertAge(value) {
+  if (!value) return "Just now";
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 function greeting() {
@@ -169,6 +184,34 @@ function ScheduleCard({ item }) {
   </article>;
 }
 
+function AlertCard({ alert, onStatus }) {
+  const meta = BRAND_META[alert.brand || "PERSONAL"] || BRAND_META.PERSONAL;
+  return <article className={`alert-card severity-${alert.severity} ${alert.status !== "unread" ? "is-read" : ""}`}>
+    <div className="alert-signal"><Icon name={alert.severity === "urgent" ? "bell" : alert.source === "schedule" ? "clock" : "sunrise"} /></div>
+    <div className="alert-copy"><div className="alert-meta"><span className={`brand-chip tone-${meta.tone}`}>{meta.short}</span><span>{alert.source.replace("-", " ")}</span><span>{alertAge(alert.created_at)}</span></div><h3>{alert.title}</h3>{alert.message && <p>{alert.message}</p>}</div>
+    <div className="alert-actions">{alert.action_url && <a href={alert.action_url} target={alert.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">Open <Icon name="arrow" size={15} /></a>}{alert.status === "unread" && <button onClick={() => onStatus(alert.id, "read")} type="button">Mark read</button>}<button onClick={() => onStatus(alert.id, "dismissed")} type="button">Dismiss</button></div>
+  </article>;
+}
+
+function ChannelCard({ icon, name, detail, state, tone = "neutral" }) {
+  return <article className={`channel-card tone-${tone}`}><span><Icon name={icon} /></span><div><h3>{name}</h3><p>{detail}</p></div><b className={`channel-state state-${state}`}>{state}</b></article>;
+}
+
+function BriefingSettings({ preferences, onSave }) {
+  const [draft, setDraft] = useState(preferences);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setDraft(preferences); }, [preferences]);
+  if (!draft) return null;
+  const set = (key) => (event) => setDraft((current) => ({ ...current, [key]: event.target.type === "checkbox" ? event.target.checked : Number(event.target.value) }));
+  async function save(event) { event.preventDefault(); setSaving(true); await onSave(draft); setSaving(false); }
+  return <form className="briefing-settings" onSubmit={save}>
+    <div className="settings-head"><div><p className="eyebrow">Your operating rhythm</p><h2>Briefing schedule</h2></div><span>Eastern time</span></div>
+    <div className="time-settings"><label>Morning brief<select value={draft.morning_brief_hour} onChange={set("morning_brief_hour")}>{Array.from({ length: 24 }, (_, hour) => <option value={hour} key={hour}>{new Date(2026, 0, 1, hour).toLocaleTimeString("en-US", { hour: "numeric" })}</option>)}</select></label><label>Midday pulse<select value={draft.midday_brief_hour} onChange={set("midday_brief_hour")}>{Array.from({ length: 24 }, (_, hour) => <option value={hour} key={hour}>{new Date(2026, 0, 1, hour).toLocaleTimeString("en-US", { hour: "numeric" })}</option>)}</select></label><label>Evening reset<select value={draft.evening_brief_hour} onChange={set("evening_brief_hour")}>{Array.from({ length: 24 }, (_, hour) => <option value={hour} key={hour}>{new Date(2026, 0, 1, hour).toLocaleTimeString("en-US", { hour: "numeric" })}</option>)}</select></label><label>Deadline warning<select value={draft.reminder_lead_hours} onChange={set("reminder_lead_hours")}><option value="6">6 hours ahead</option><option value="12">12 hours ahead</option><option value="24">24 hours ahead</option><option value="48">2 days ahead</option><option value="72">3 days ahead</option></select></label></div>
+    <div className="channel-toggles"><label><input type="checkbox" checked={draft.telegram_enabled} onChange={set("telegram_enabled")} /><span><b>Telegram alerts</b><small>Immediate mobile delivery</small></span></label><label><input type="checkbox" checked={draft.email_enabled} onChange={set("email_enabled")} /><span><b>Email backup</b><small>Delivered when configured</small></span></label><label className="disabled-toggle"><input type="checkbox" checked={false} disabled /><span><b>Apple Messages</b><small>Waiting for connector availability</small></span></label></div>
+    <button className="primary-button compact-button" disabled={saving} type="submit">{saving ? "Saving…" : "Save daily rhythm"}</button>
+  </form>;
+}
+
 function JobRow({ job, onStatus, onDelete }) {
   const meta = BRAND_META[job.brand];
   return <article className={`job-row priority-${job.priority}`}>
@@ -225,11 +268,15 @@ function JobComposer({ open, onClose, onSaved }) {
 }
 
 function Dashboard({ session, onLogout }) {
-  const [view, setView] = useState("overview");
+  const initialView = window.location.hash.replace("#", "");
+  const [view, setView] = useState(NAV_ITEMS.some(([id]) => id === initialView) ? initialView : "overview");
   const [brandFilter, setBrandFilter] = useState("all");
   const [projects, setProjects] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [preferences, setPreferences] = useState(null);
+  const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -240,23 +287,42 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
       supabase.from("founder_sync_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("founder_alerts").select("*").eq("owner_id", FOUNDER_ID).neq("status", "dismissed").order("created_at", { ascending: false }).limit(50),
+      supabase.from("founder_notification_preferences").select("*").eq("owner_id", FOUNDER_ID).maybeSingle(),
+      supabase.from("founder_brief_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
     if (jobResult.data) setJobs(jobResult.data);
     if (syncResult.data) setSyncRun(syncResult.data);
+    if (alertResult.data) setAlerts(alertResult.data);
+    if (preferenceResult.data) setPreferences(preferenceResult.data);
+    if (briefResult.data) setBriefRun(briefResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const timer = window.setInterval(loadData, 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const newest = alerts.find((alert) => alert.status === "unread");
+    if (!newest || sessionStorage.getItem("founder-last-notified") === newest.id) return;
+    new Notification(newest.title, { body: newest.message || "Founder Dashboard has a new update.", tag: newest.id });
+    sessionStorage.setItem("founder-last-notified", newest.id);
+  }, [alerts]);
 
   async function refreshCloud() {
     setSyncing(true);
@@ -265,7 +331,40 @@ function Dashboard({ session, onLogout }) {
       body: { source: "dashboard-manual", force: true },
     });
     if (syncError) setError("The cloud health check could not finish. Your saved dashboard data is still available.");
+    const { error: briefError } = await supabase.functions.invoke("founder-daily-brief", { body: { mode: "manual", deliver: false } });
+    if (briefError) setError("Project health refreshed, but the briefing engine could not finish.");
     await loadData();
+  }
+
+  async function updateAlert(id, status) {
+    const previous = alerts;
+    setAlerts((items) => status === "dismissed" ? items.filter((item) => item.id !== id) : items.map((item) => item.id === id ? { ...item, status } : item));
+    const { error: updateError } = await supabase.from("founder_alerts").update({ status, read_at: status === "read" ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", FOUNDER_ID);
+    if (updateError) { setAlerts(previous); setError("That alert could not be updated."); }
+  }
+
+  async function savePreferences(next) {
+    const values = {
+      owner_id: FOUNDER_ID,
+      morning_brief_hour: next.morning_brief_hour,
+      midday_brief_hour: next.midday_brief_hour,
+      evening_brief_hour: next.evening_brief_hour,
+      reminder_lead_hours: next.reminder_lead_hours,
+      telegram_enabled: next.telegram_enabled,
+      email_enabled: next.email_enabled,
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error: preferenceError } = await supabase.from("founder_notification_preferences").upsert(values, { onConflict: "owner_id" }).select().single();
+    if (preferenceError) { setError("Your briefing rhythm could not be saved."); return; }
+    setPreferences(data);
+  }
+
+  async function enableBrowserAlerts() {
+    if (!("Notification" in window)) { setError("This browser does not support on-device notifications."); return; }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") { setError("Browser notifications were not enabled on this device."); return; }
+    await supabase.from("founder_notification_preferences").update({ browser_enabled: true, updated_at: new Date().toISOString() }).eq("owner_id", FOUNDER_ID);
+    setPreferences((current) => ({ ...current, browser_enabled: true }));
   }
 
   async function updateJob(id, status) {
@@ -283,11 +382,12 @@ function Dashboard({ session, onLogout }) {
     if (deleteError) { setJobs(previous); setError("That job could not be removed. Try again."); }
   }
 
-  function openBrand(brand) { setBrandFilter(brand); setView("projects"); }
-  function navigate(nextView) { setView(nextView); setMobileOpen(false); if (nextView !== "projects") setBrandFilter("all"); }
+  function openBrand(brand) { setBrandFilter(brand); setView("projects"); window.history.replaceState(null, "", "#projects"); }
+  function navigate(nextView) { setView(nextView); window.history.replaceState(null, "", `#${nextView}`); setMobileOpen(false); if (nextView !== "projects") setBrandFilter("all"); }
 
   const filteredProjects = brandFilter === "all" ? projects : projects.filter((project) => project.brand === brandFilter);
   const openJobs = jobs.filter((job) => job.status !== "done");
+  const unreadAlerts = alerts.filter((alert) => alert.status === "unread");
   const dueJobs = openJobs.filter((job) => job.due_at && new Date(job.due_at) <= new Date(Date.now() + 7 * 86400000));
   const health = projects.length ? Math.round(projects.reduce((sum, project) => sum + project.health, 0) / projects.length) : 0;
   const focus = openJobs.find((job) => job.priority === "urgent") || openJobs.find((job) => job.priority === "high");
@@ -295,7 +395,7 @@ function Dashboard({ session, onLogout }) {
   return <div className="dashboard-shell">
     <aside className={`sidebar ${mobileOpen ? "is-open" : ""}`}>
       <div className="sidebar-brand"><div className="founder-mark compact"><span>N</span><i /></div><div><b>NASIRR MAYO</b><small>Founder Dashboard</small></div></div>
-      <nav aria-label="Dashboard navigation">{NAV_ITEMS.map(([id, label, icon]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)} type="button"><Icon name={icon} /><span>{label}</span>{id === "jobs" && openJobs.length > 0 && <b>{openJobs.length}</b>}</button>)}</nav>
+      <nav aria-label="Dashboard navigation">{NAV_ITEMS.map(([id, label, icon]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)} type="button"><Icon name={icon} /><span>{label}</span>{id === "jobs" && openJobs.length > 0 && <b>{openJobs.length}</b>}{id === "briefing" && unreadAlerts.length > 0 && <b>{unreadAlerts.length}</b>}</button>)}</nav>
       <section className="ecosystem-mini"><p className="eyebrow">Ecosystem</p>{BRAND_ORDER.map((brand) => <button key={brand} onClick={() => openBrand(brand)} type="button"><i className={`tone-${BRAND_META[brand].tone}`} /><span>{brand}</span><b>{projects.filter((project) => project.brand === brand).length}</b></button>)}</section>
       <div className="sidebar-foot"><div className="cloud-state"><span><i /> Cloud connected</span><small>Supabase · GitHub Pages</small></div><button className="logout-button" onClick={onLogout} type="button"><Icon name="logout" /> Sign out</button></div>
     </aside>
@@ -314,13 +414,31 @@ function Dashboard({ session, onLogout }) {
               <div><p className="eyebrow">Founder operating view</p><h2>{greeting()}, Nasirr.</h2><p>{focus ? <>Your highest-leverage move is <strong>{focus.title}</strong>.</> : <>The system is clear. Add the next important job when you’re ready to move.</>}</p></div>
               <div className="hero-status"><span>Overall system health</span><strong>{health}<small>%</small></strong><i><b style={{ width: `${health}%` }} /></i></div>
             </div>
-            <div className="metrics-grid"><Metric label="Priority projects" value={projects.length} detail={`${BRAND_ORDER.length} connected brands`} tone="lime" /><Metric label="Active schedules" value={schedules.filter((item) => item.status === "active").length} detail="Codex reminders mirrored" tone="gold" /><Metric label="Open jobs" value={openJobs.length} detail={dueJobs.length ? `${dueJobs.length} due within 7 days` : "No immediate deadlines"} tone="blue" /><Metric label="Cloud services" value="12" detail="Active Supabase functions" /></div>
+            <button className={`briefing-strip ${unreadAlerts.some((alert) => alert.severity === "urgent") ? "has-urgent" : ""}`} onClick={() => navigate("briefing")} type="button"><span className="briefing-strip-icon"><Icon name="bell" /></span><span><small>Proactive founder briefing</small><b>{unreadAlerts.length ? `${unreadAlerts.length} update${unreadAlerts.length === 1 ? "" : "s"} waiting before check-in` : "You are caught up. The cloud is still watching."}</b></span><em>{briefRun?.finished_at ? `Last pulse ${syncAge(briefRun.finished_at)}` : "Briefing engine starting"}</em><Icon name="arrow" /></button>
+            <div className="metrics-grid"><Metric label="Priority projects" value={projects.length} detail={`${BRAND_ORDER.length} connected brands`} tone="lime" /><Metric label="Active schedules" value={schedules.filter((item) => item.status === "active").length} detail="Codex reminders mirrored" tone="gold" /><Metric label="Open jobs" value={openJobs.length} detail={dueJobs.length ? `${dueJobs.length} due within 7 days` : "No immediate deadlines"} tone="blue" /><Metric label="Cloud pulse" value="1 hr" detail="Checks before you do" /></div>
             <div className="section-heading"><div><p className="eyebrow">The three engines</p><h2>Your ecosystem at a glance</h2></div><button className="text-action" onClick={() => navigate("projects")} type="button">View every project <Icon name="arrow" size={16} /></button></div>
             <div className="brand-grid">{BRAND_ORDER.map((brand) => <BrandCard key={brand} brand={brand} projects={projects.filter((project) => project.brand === brand)} jobs={jobs} onOpen={openBrand} />)}</div>
             <div className="overview-split">
               <section><div className="section-heading compact-heading"><div><p className="eyebrow">Operating rhythm</p><h2>Scheduled reminders</h2></div><button className="text-action" onClick={() => navigate("schedule")} type="button">Full schedule <Icon name="arrow" size={16} /></button></div><div className="schedule-list">{schedules.slice(0, 2).map((item) => <ScheduleCard item={item} key={item.id} />)}</div></section>
               <section className="system-panel"><div><p className="eyebrow">Cloud infrastructure</p><h2>Always available</h2><p>The dashboard and its data stay online when your Mac is closed. GitHub Pages serves the interface; Supabase protects your founder data and verifies project health throughout the day.</p></div><div className="system-lines"><span><Icon name="cloud" /> Database and authentication <b>Online</b></span><span><Icon name="github" /> Automatic project checks <b>{syncRun?.finished_at ? timeAgo(syncRun.finished_at) : "Starting"}</b></span><span><Icon name="clock" /> Codex reminder mirror <b>{schedules.length} active</b></span></div></section>
             </div>
+          </section>}
+
+          {view === "briefing" && <section className="view-stack">
+            <div className="briefing-hero">
+              <div><p className="eyebrow">Prepared before check-in</p><h2>{unreadAlerts.length ? `${unreadAlerts.length} things deserve your attention.` : "Your operating picture is clear."}</h2><p>{unreadAlerts[0]?.message || "The cloud checks projects, deadlines, and active schedules every hour, then brings forward only what changed."}</p><div className="briefing-hero-actions"><button className="primary-button" onClick={refreshCloud} disabled={syncing} type="button"><Icon name="refresh" /> {syncing ? "Preparing…" : "Refresh briefing"}</button>{!preferences?.browser_enabled && <button className="secondary-button" onClick={enableBrowserAlerts} type="button"><Icon name="bell" /> Enable browser alerts</button>}</div></div>
+              <div className="today-card"><span><Icon name="sunrise" /></span><small>Right now</small><strong>{openJobs.length}</strong><p>open jobs across the ecosystem</p><div><b>{openJobs.filter((job) => job.due_at && new Date(job.due_at) < new Date()).length}</b> overdue <b>{projects.filter((project) => project.status === "attention" || project.health < 80).length}</b> project alerts</div></div>
+            </div>
+            <div className="channel-grid">
+              <ChannelCard icon="message" name="Telegram" detail="Immediate mobile alert channel" state={briefRun?.deliveries?.telegram?.status || (preferences?.telegram_enabled ? "ready" : "off")} tone="lime" />
+              <ChannelCard icon="mail" name="Email" detail="Backup briefing delivery" state={briefRun?.deliveries?.email?.status || (preferences?.email_enabled ? "ready" : "off")} tone="gold" />
+              <ChannelCard icon="bell" name="Browser" detail="Alerts while this dashboard is active" state={preferences?.browser_enabled ? "ready" : "optional"} tone="blue" />
+              <ChannelCard icon="message" name="Apple Messages" detail="Reserved for the official connector" state="waiting" />
+            </div>
+            <div className="section-heading compact-heading"><div><p className="eyebrow">Attention queue</p><h2>What changed</h2></div>{unreadAlerts.length > 0 && <span className="source-note"><i /> {unreadAlerts.length} unread</span>}</div>
+            {alerts.length ? <div className="alert-list">{alerts.map((alert) => <AlertCard alert={alert} onStatus={updateAlert} key={alert.id} />)}</div> : <div className="empty-jobs"><span><Icon name="check" size={26} /></span><h3>No alerts are waiting.</h3><p>The next cloud pulse will add an alert only when something changes or needs a decision.</p></div>}
+            <BriefingSettings preferences={preferences} onSave={savePreferences} />
+            <aside className="context-note"><Icon name="message" /><div><b>Apple Messages status</b><p>The official OpenAI use-case catalog includes iMessage workflows, but no Apple Messages tool is installed in this workspace yet. The channel remains off until the connector is available and authenticated.</p></div></aside>
           </section>}
 
           {view === "projects" && <section className="view-stack">
