@@ -56,6 +56,17 @@ function formatDate(value, options = {}) {
   }).format(new Date(value));
 }
 
+function formatBriefingDate(value) {
+  if (!value) return "No reflection yet";
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "America/New_York",
+  }).format(new Date(`${value}T12:00:00Z`));
+}
+
 function timeAgo(value) {
   if (!value) return "No activity found";
   const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
@@ -197,6 +208,40 @@ function ChannelCard({ icon, name, detail, state, tone = "neutral" }) {
   return <article className={`channel-card tone-${tone}`}><span><Icon name={icon} /></span><div><h3>{name}</h3><p>{detail}</p></div><b className={`channel-state state-${state}`}>{state}</b></article>;
 }
 
+function ReflectionList({ title, items, tone = "neutral" }) {
+  const entries = Array.isArray(items) ? items : [];
+  return <section className={`reflection-list tone-${tone}`}>
+    <h4>{title}</h4>
+    {entries.length ? <ul>{entries.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p>Nothing recorded.</p>}
+  </section>;
+}
+
+function DailyReflection({ briefings }) {
+  const latest = briefings[0];
+  return <section className="reflection-panel" aria-labelledby="reflection-title">
+    <div className="reflection-head">
+      <div><p className="eyebrow">Daily voice memo</p><h2 id="reflection-title">Founder reflection</h2></div>
+      <div className="reflection-rhythm"><span><b>6:00 PM</b> reminder</span><Icon name="arrow" size={15} /><span><b>8:00 PM</b> voice memo</span></div>
+    </div>
+    {latest ? <>
+      <article className="reflection-latest">
+        <div className="reflection-summary"><span>{formatBriefingDate(latest.briefing_date)}</span><h3>{latest.summary || "Daily operating review"}</h3><p>Prepared from your founder voice memo and kept private inside this dashboard.</p></div>
+        <div className="reflection-grid">
+          <ReflectionList title="Completed" items={latest.completed} tone="lime" />
+          <ReflectionList title="Decisions" items={latest.decisions} tone="blue" />
+          <ReflectionList title="Blockers" items={latest.blockers} tone="gold" />
+          <ReflectionList title="Tomorrow's top priorities" items={latest.tomorrow_priorities} tone="lime" />
+          <ReflectionList title="Remainder of the week" items={latest.week_focus} tone="blue" />
+        </div>
+      </article>
+      {briefings.length > 1 && <div className="reflection-history"><p className="eyebrow">Recent briefings</p><div>{briefings.slice(1, 8).map((briefing) => <article key={briefing.id}><span>{formatBriefingDate(briefing.briefing_date)}</span><p>{briefing.summary || "Daily operating review"}</p></article>)}</div></div>}
+    </> : <div className="reflection-empty">
+      <span><Icon name="message" size={24} /></span>
+      <div><h3>Your first voice briefing will appear here.</h3><p>At 6:00 PM, Codex will remind you to prepare. Send the voice memo around 8:00 PM with what you completed, what changed, what is blocked, tomorrow's priorities, and the rest-of-week focus.</p></div>
+    </div>}
+  </section>;
+}
+
 function BriefingSettings({ preferences, onSave }) {
   const [draft, setDraft] = useState(preferences);
   const [saving, setSaving] = useState(false);
@@ -275,6 +320,7 @@ function Dashboard({ session, onLogout }) {
   const [schedules, setSchedules] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [dailyBriefings, setDailyBriefings] = useState([]);
   const [preferences, setPreferences] = useState(null);
   const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
@@ -287,7 +333,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -295,8 +341,9 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_alerts").select("*").eq("owner_id", FOUNDER_ID).neq("status", "dismissed").order("created_at", { ascending: false }).limit(50),
       supabase.from("founder_notification_preferences").select("*").eq("owner_id", FOUNDER_ID).maybeSingle(),
       supabase.from("founder_brief_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("founder_daily_briefings").select("*").eq("owner_id", FOUNDER_ID).order("briefing_date", { ascending: false }).limit(30),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -305,6 +352,7 @@ function Dashboard({ session, onLogout }) {
     if (alertResult.data) setAlerts(alertResult.data);
     if (preferenceResult.data) setPreferences(preferenceResult.data);
     if (briefResult.data) setBriefRun(briefResult.data);
+    if (dailyBriefingResult.data) setDailyBriefings(dailyBriefingResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
@@ -429,6 +477,7 @@ function Dashboard({ session, onLogout }) {
               <div><p className="eyebrow">Prepared before check-in</p><h2>{unreadAlerts.length ? `${unreadAlerts.length} things deserve your attention.` : "Your operating picture is clear."}</h2><p>{unreadAlerts[0]?.message || "The cloud checks projects, deadlines, and active schedules every hour, then brings forward only what changed."}</p><div className="briefing-hero-actions"><button className="primary-button" onClick={refreshCloud} disabled={syncing} type="button"><Icon name="refresh" /> {syncing ? "Preparing…" : "Refresh briefing"}</button>{!preferences?.browser_enabled && <button className="secondary-button" onClick={enableBrowserAlerts} type="button"><Icon name="bell" /> Enable browser alerts</button>}</div></div>
               <div className="today-card"><span><Icon name="sunrise" /></span><small>Right now</small><strong>{openJobs.length}</strong><p>open jobs across the ecosystem</p><div><b>{openJobs.filter((job) => job.due_at && new Date(job.due_at) < new Date()).length}</b> overdue <b>{projects.filter((project) => project.status === "attention" || project.health < 80).length}</b> project alerts</div></div>
             </div>
+            <DailyReflection briefings={dailyBriefings} />
             <div className="channel-grid">
               <ChannelCard icon="message" name="Telegram" detail="Immediate mobile alert channel" state={briefRun?.deliveries?.telegram?.status || (preferences?.telegram_enabled ? "ready" : "off")} tone="lime" />
               <ChannelCard icon="mail" name="Email" detail="Backup briefing delivery" state={briefRun?.deliveries?.email?.status || (preferences?.email_enabled ? "ready" : "off")} tone="gold" />

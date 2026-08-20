@@ -5,7 +5,7 @@ const app = readFileSync(new URL("./src/main.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./src/styles.css", import.meta.url), "utf8");
 const supabase = readFileSync(new URL("./src/supabase.js", import.meta.url), "utf8");
 
-for (const marker of ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX", "founder_projects", "founder_schedules", "founder_jobs", "founder_sync_runs", "founder_alerts", "founder_notification_preferences", "founder_brief_runs", "founder-dashboard-sync", "founder-daily-brief"]) {
+for (const marker of ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX", "founder_projects", "founder_schedules", "founder_jobs", "founder_sync_runs", "founder_alerts", "founder_notification_preferences", "founder_brief_runs", "founder_daily_briefings", "founder-dashboard-sync", "founder-daily-brief"]) {
   assert.ok(app.includes(marker), `Missing founder dashboard behavior: ${marker}`);
 }
 assert.ok(app.includes("signInWithPassword"), "Secure password authentication must remain enabled");
@@ -14,6 +14,7 @@ assert.ok(!supabase.includes("service_role"), "A service-role key must never be 
 assert.ok(!app.includes("api.github.com/repos"), "Repository checks must run in the cloud, not each visitor's browser");
 assert.ok(app.includes("Notification.requestPermission"), "On-device briefing notifications must remain available");
 assert.ok(app.includes("Apple Messages") && app.includes("Waiting for connector availability"), "Apple Messages must be labeled pending until a connector is available");
+assert.ok(app.includes("Daily voice memo") && app.includes("6:00 PM") && app.includes("8:00 PM"), "The daily voice briefing rhythm must be visible");
 assert.ok(styles.includes("oklch("), "The dashboard must use the OKLCH color system");
 assert.ok(!styles.includes("transition: all"), "Transitions must name the properties they animate");
 assert.ok(styles.includes("min-height: 44px"), "Interactive controls need accessible hit areas");

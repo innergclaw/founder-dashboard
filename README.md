@@ -10,6 +10,7 @@ Private operating dashboard for Nasirr G. Mayo across OWNYOURWEB, INNERGINTEL, a
 - GitHub repository freshness and Supabase sync status
 - Hourly cloud briefing engine that prepares alerts before check-in
 - Morning, midday, and evening briefing preferences
+- Daily founder voice-memo reflections with completed work, decisions, blockers, tomorrow's priorities, and week focus
 - Telegram and email delivery when configured, plus on-device browser notifications
 - Apple Messages shown as pending until an approved connector is available
 
