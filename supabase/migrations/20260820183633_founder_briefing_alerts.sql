@@ -8,7 +8,7 @@ create table if not exists public.founder_notification_preferences (
   evening_brief_hour smallint not null default 18 check (evening_brief_hour between 0 and 23),
   reminder_lead_hours smallint not null default 24 check (reminder_lead_hours between 1 and 168),
   telegram_enabled boolean not null default true,
-  email_enabled boolean not null default true,
+  email_enabled boolean not null default false,
   browser_enabled boolean not null default false,
   apple_messages_enabled boolean not null default false,
   quiet_hours_start smallint not null default 21 check (quiet_hours_start between 0 and 23),

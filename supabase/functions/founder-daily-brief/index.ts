@@ -172,7 +172,7 @@ Deno.serve(async (request: Request) => {
     ]);
     const preferences = preferencesRows?.[0] || {
       timezone: "America/New_York", morning_brief_hour: 7, midday_brief_hour: 12, evening_brief_hour: 18,
-      reminder_lead_hours: 24, telegram_enabled: true, email_enabled: true, quiet_hours_start: 21, quiet_hours_end: 7,
+      reminder_lead_hours: 24, telegram_enabled: true, email_enabled: false, quiet_hours_start: 21, quiet_hours_end: 7,
     };
     const local = localParts(preferences.timezone);
     let mode = String(body.mode || "auto");
@@ -230,7 +230,7 @@ Deno.serve(async (request: Request) => {
     if (["morning", "midday", "evening", "manual", "test"].includes(mode)) candidates.unshift({
       brand: "PERSONAL", title: mode === "morning" ? "Your day is ready" : mode === "evening" ? "Close the day with clarity" : "Founder briefing updated",
       message: `${summary.openJobs} open jobs, ${summary.overdueJobs} overdue, ${summary.attentionProjects} projects needing attention.`, severity: summary.overdueJobs ? "urgent" : summary.attentionProjects ? "attention" : "info", source: "daily-brief",
-      fingerprint: `daily-brief:${mode}:${local.date}`, action_url: `${DASHBOARD_URL}#briefing`,
+      fingerprint: mode === "test" ? `daily-brief:test:${Date.now()}` : `daily-brief:${mode}:${local.date}`, action_url: `${DASHBOARD_URL}#briefing`,
     });
 
     const createdAlerts = (await Promise.all(candidates.map(insertAlert))).filter(Boolean);
@@ -252,7 +252,7 @@ Deno.serve(async (request: Request) => {
       body: JSON.stringify({ status, alerts_created: createdAlerts.length, summary, deliveries, finished_at: new Date().toISOString() }),
     });
 
-    return json({ ok: status === "success", mode, alerts_created: createdAlerts.length, summary, deliveries, quiet_hours: quiet });
+    return json({ ok: status === "success", mode, alerts_created: createdAlerts.length, summary, deliveries, quiet_hours: quiet, telegram_due: shouldDeliver && preferences.telegram_enabled, message: text });
   } catch (error) {
     console.error("founder_daily_brief_failed", error);
     return json({ error: "Founder briefing failed" }, 500);
