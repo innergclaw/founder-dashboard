@@ -57,6 +57,7 @@ jobs:
             test -n "$TELEGRAM_CHAT_ID"
             echo "$BRIEF_RESPONSE" | jq --raw-output '.message' | curl --fail-with-body --silent --show-error \
               --request POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-              --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
-              --data-urlencode text@- \
-              --data-urlencode "disable_web_page_preview=true" >/dev/null
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode text@- \
+            --data-urlencode "disable_web_page_preview=true" >/dev/null
+          fi
