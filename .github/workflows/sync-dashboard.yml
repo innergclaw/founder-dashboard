@@ -13,6 +13,14 @@ on:
         options:
           - auto
           - test
+      sync_source:
+        description: Audit source for a manual dashboard refresh
+        required: false
+        default: codex-skill
+        type: choice
+        options:
+          - codex-skill
+          - github-actions
 
 permissions:
   contents: read
@@ -30,13 +38,14 @@ jobs:
         env:
           SYNC_URL: https://zkyhhoxcrjkhywblzehr.supabase.co/functions/v1/founder-dashboard-sync
           SUPABASE_ANON_JWT: ${{ secrets.SUPABASE_ANON_JWT }}
+          SYNC_SOURCE: ${{ inputs.sync_source || 'github-actions' }}
         run: |
           test -n "$SUPABASE_ANON_JWT"
           curl --fail-with-body --silent --show-error \
             --request POST "$SYNC_URL" \
             --header "Authorization: Bearer $SUPABASE_ANON_JWT" \
             --header "Content-Type: application/json" \
-            --data '{"source":"github-actions"}'
+            --data "{\"source\":\"$SYNC_SOURCE\"}"
       - name: Prepare alerts and deliver due briefings
         env:
           BRIEF_URL: https://zkyhhoxcrjkhywblzehr.supabase.co/functions/v1/founder-daily-brief
