@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
   ["projects", "Projects", "layers"],
+  ["professional", "Professional", "briefcase"],
   ["schedule", "Schedule", "calendar"],
   ["jobs", "Jobs", "check"],
 ];
@@ -40,6 +41,9 @@ function Icon({ name, size = 18 }) {
     sunrise: <><path d="M12 2v3M4.2 6.2l2.1 2.1M2 14h3M19 14h3M17.7 8.3l2.1-2.1"/><path d="M5 18a7 7 0 0 1 14 0M3 22h18"/></>,
     message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
+    briefcase: <><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></>,
+    file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></>,
+    download: <><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></>,
   };
   return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.grid}</svg>;
 }
@@ -312,6 +316,64 @@ function JobComposer({ open, onClose, onSaved }) {
   </div>;
 }
 
+function ProfessionalWorkspace({ documents, applications, onOpenDocument, onUploadDocument, onApplicationStatus }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  async function upload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError("");
+    const error = await onUploadDocument(file);
+    if (error) setUploadError(error);
+    setUploading(false);
+    event.target.value = "";
+  }
+
+  return <section className="view-stack professional-view">
+    <div className="professional-hero">
+      <div><p className="eyebrow">Private career command center</p><h2>Experience, documents, and opportunities in one place.</h2><p>Keep your professional story current, carry the right documents into every opportunity, and know exactly what needs to move next.</p></div>
+      <div className="professional-identity"><span className="brand-monogram">NGM</span><p>Nasirr G. Mayo</p><strong>Creative Digital Specialist</strong><small>Philadelphia, PA · 10+ years building brands, systems, and client experiences</small></div>
+    </div>
+
+    <div className="professional-metrics">
+      <Metric label="Current documents" value={documents.filter((item) => item.status === "current").length} detail="Private cloud library" tone="lime" />
+      <Metric label="Active applications" value={applications.filter((item) => !["closed", "offer"].includes(item.status)).length} detail="Tracked opportunities" tone="blue" />
+      <Metric label="Core experience" value="10+ yrs" detail="Creative and digital systems" tone="gold" />
+    </div>
+
+    <div className="professional-grid">
+      <section className="document-library">
+        <div className="section-heading compact-heading"><div><p className="eyebrow">Professional docs</p><h2>Resume and records</h2></div><label className={`upload-button ${uploading ? "is-busy" : ""}`}><Icon name="plus" size={16} />{uploading ? "Uploading…" : "Add PDF"}<input type="file" accept="application/pdf,.pdf" onChange={upload} disabled={uploading} /></label></div>
+        {uploadError && <p className="form-error" role="alert">{uploadError}</p>}
+        {documents.length ? <div className="document-list">{documents.map((document) => <article className="document-card" key={document.id}>
+          <span className="document-icon"><Icon name="file" /></span>
+          <div><div className="document-meta"><span>{document.category.replace("-", " ")}</span><span>{document.version_label || "Current"}</span></div><h3>{document.title}</h3><p>{document.description || document.file_name}</p><small>{Math.max(1, Math.round(document.size_bytes / 1024))} KB · Private Supabase storage</small></div>
+          <button className="icon-button" onClick={() => onOpenDocument(document)} type="button" aria-label={`Open ${document.title}`}><Icon name="download" /></button>
+        </article>)}</div> : <div className="professional-empty"><span><Icon name="file" /></span><div><h3>Your document library is ready.</h3><p>Add the current resume to keep it protected and available from any device.</p></div></div>}
+      </section>
+
+      <aside className="professional-profile">
+        <p className="eyebrow">Professional snapshot</p><h2>What you bring</h2>
+        <p>Creative digital leadership backed by operational discipline, safety awareness, documentation, project coordination, and direct client service.</p>
+        <div><span>Brand identity and web systems</span><span>Project coordination and documentation</span><span>Safety awareness and sound judgment</span><span>Client communication and follow-through</span></div>
+        <a href="https://nasirr.innergintel.org/" target="_blank" rel="noreferrer">Open Home Base <Icon name="external" size={15} /></a>
+      </aside>
+    </div>
+
+    <section className="application-board">
+      <div className="section-heading compact-heading"><div><p className="eyebrow">Opportunity pipeline</p><h2>Job applications</h2></div><span className="source-note"><i /> Founder only</span></div>
+      {applications.length ? <div className="application-list">{applications.map((application) => <article className="application-card" key={application.id}>
+        <div className="application-company"><span><Icon name="briefcase" /></span><div><small>{application.company}</small><h3>{application.role}</h3><p>{application.location}</p></div></div>
+        <div className="application-notes"><span>Fit and qualification notes</span><p>{application.match_notes}</p></div>
+        <div className="application-next"><span>Next action</span><p>{application.next_action}</p></div>
+        <div className="application-actions"><select aria-label={`Status for ${application.role}`} value={application.status} onChange={(event) => onApplicationStatus(application.id, event.target.value)}><option value="researching">Researching</option><option value="preparing">Preparing</option><option value="ready">Ready</option><option value="submitted">Submitted</option><option value="interview">Interview</option><option value="offer">Offer</option><option value="closed">Closed</option></select><a href={application.job_url} target="_blank" rel="noreferrer">Open role <Icon name="external" size={15} /></a></div>
+      </article>)}</div> : <div className="professional-empty"><span><Icon name="briefcase" /></span><div><h3>No applications tracked yet.</h3><p>Add an opportunity when it deserves focused follow-through.</p></div></div>}
+    </section>
+  </section>;
+}
+
 function Dashboard({ session, onLogout }) {
   const initialView = window.location.hash.replace("#", "");
   const [view, setView] = useState(NAV_ITEMS.some(([id]) => id === initialView) ? initialView : "overview");
@@ -321,6 +383,8 @@ function Dashboard({ session, onLogout }) {
   const [jobs, setJobs] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [dailyBriefings, setDailyBriefings] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [preferences, setPreferences] = useState(null);
   const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
@@ -333,7 +397,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -342,8 +406,10 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_notification_preferences").select("*").eq("owner_id", FOUNDER_ID).maybeSingle(),
       supabase.from("founder_brief_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("founder_daily_briefings").select("*").eq("owner_id", FOUNDER_ID).order("briefing_date", { ascending: false }).limit(30),
+      supabase.from("founder_documents").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
+      supabase.from("founder_applications").select("*").eq("owner_id", FOUNDER_ID).order("updated_at", { ascending: false }),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -353,6 +419,8 @@ function Dashboard({ session, onLogout }) {
     if (preferenceResult.data) setPreferences(preferenceResult.data);
     if (briefResult.data) setBriefRun(briefResult.data);
     if (dailyBriefingResult.data) setDailyBriefings(dailyBriefingResult.data);
+    if (documentResult.data) setDocuments(documentResult.data);
+    if (applicationResult.data) setApplications(applicationResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
@@ -430,6 +498,34 @@ function Dashboard({ session, onLogout }) {
     if (deleteError) { setJobs(previous); setError("That job could not be removed. Try again."); }
   }
 
+  async function openDocument(document) {
+    const { data, error: signedUrlError } = await supabase.storage.from(document.storage_bucket).createSignedUrl(document.storage_path, 60);
+    if (signedUrlError || !data?.signedUrl) { setError("That private document could not be opened. Try again."); return; }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function uploadDocument(file) {
+    if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) return "Only PDF documents can be added here.";
+    if (file.size > 10 * 1024 * 1024) return "That PDF is larger than the 10 MB private-document limit.";
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+    const storagePath = `${FOUNDER_ID}/professional/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("founder-documents").upload(storagePath, file, { contentType: "application/pdf", upsert: false });
+    if (uploadError) return "The PDF could not be uploaded to private storage.";
+    const isResume = file.name.toLowerCase().includes("resume");
+    const { error: metadataError } = await supabase.from("founder_documents").insert({ owner_id: FOUNDER_ID, title: isResume ? "Nasirr G. Mayo Resume" : file.name.replace(/\.pdf$/i, ""), description: isResume ? "Current professional resume" : "Professional document", category: isResume ? "resume" : "other", file_name: file.name, storage_path: storagePath, mime_type: file.type, size_bytes: file.size, version_label: isResume ? "Current" : "" });
+    if (metadataError) { await supabase.storage.from("founder-documents").remove([storagePath]); return "The PDF uploaded, but its library record could not be saved."; }
+    await loadData();
+    return "";
+  }
+
+  async function updateApplicationStatus(id, status) {
+    const previous = applications;
+    setApplications((items) => items.map((application) => application.id === id ? { ...application, status } : application));
+    const values = { status, updated_at: new Date().toISOString(), applied_at: status === "submitted" ? new Date().toISOString() : undefined };
+    const { error: updateError } = await supabase.from("founder_applications").update(values).eq("id", id).eq("owner_id", FOUNDER_ID);
+    if (updateError) { setApplications(previous); setError("That application status could not be updated."); }
+  }
+
   function openBrand(brand) { setBrandFilter(brand); setView("projects"); window.history.replaceState(null, "", "#projects"); }
   function navigate(nextView) { setView(nextView); window.history.replaceState(null, "", `#${nextView}`); setMobileOpen(false); if (nextView !== "projects") setBrandFilter("all"); }
 
@@ -494,6 +590,8 @@ function Dashboard({ session, onLogout }) {
             <div className="page-lead"><div><p className="eyebrow">{syncRun?.finished_at ? `Cloud verified ${formatDate(syncRun.finished_at, { year: true, time: true })}` : "Cloud verification starting"}</p><h2>Important project snapshot</h2><p>The highest-value public systems and operating assets across your three brands.</p></div><div className="filter-tabs" aria-label="Filter projects"><button className={brandFilter === "all" ? "active" : ""} onClick={() => setBrandFilter("all")} type="button">All</button>{BRAND_ORDER.map((brand) => <button className={brandFilter === brand ? "active" : ""} onClick={() => setBrandFilter(brand)} key={brand} type="button">{BRAND_META[brand].short}</button>)}</div></div>
             <div className="projects-grid">{filteredProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div>
           </section>}
+
+          {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">
             <div className="page-lead"><div><p className="eyebrow">Founder rhythm</p><h2>Scheduled reminders</h2><p>Your active recurring Codex work, mirrored into one cloud view.</p></div><span className="source-note"><i /> Source of truth: Codex Automations</span></div>
