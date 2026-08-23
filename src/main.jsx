@@ -8,6 +8,7 @@ const BRAND_ORDER = ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX"];
 const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
+  ["chief", "Chief of Staff", "message"],
   ["projects", "Projects", "layers"],
   ["development", "Development", "compass"],
   ["professional", "Professional", "briefcase"],
@@ -396,6 +397,70 @@ function ProfessionalWorkspace({ documents, applications, onOpenDocument, onUplo
   </section>;
 }
 
+function ChiefOfStaffView({ items, onProcessed }) {
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [submitError, setSubmitError] = useState("");
+  const latest = result?.decision || items[0]?.decision || null;
+
+  async function submit(event) {
+    event.preventDefault();
+    const founderMessage = message.trim();
+    if (!founderMessage) return;
+    setSubmitting(true);
+    setSubmitError("");
+    setResult(null);
+    const { data, error } = await supabase.functions.invoke("founder-chief-of-staff", {
+      body: { message: founderMessage, source: "dashboard" },
+    });
+    if (error || !data?.decision) {
+      setSubmitError("Agent 1 could not process that check-in. Your message was not added to the queue.");
+      setSubmitting(false);
+      return;
+    }
+    setResult(data);
+    setMessage("");
+    await onProcessed();
+    setSubmitting(false);
+  }
+
+  return <section className="view-stack chief-view">
+    <div className="chief-hero">
+      <div><p className="eyebrow">Agent 1 · Founder operations</p><h2>Say it once.<br />Get the next move.</h2><p>Drop in a thought, task, update, or decision. Chief of Staff sorts the brand, protects your focus, and sends only safe internal work into the cloud queue.</p></div>
+      <div className="chief-model"><span><i /> Online</span><strong>GPT-OSS 120B</strong><small>Groq Cloud · Supabase policy gate</small></div>
+    </div>
+
+    <div className="chief-workspace">
+      <form className="chief-intake" onSubmit={submit}>
+        <div><p className="eyebrow">Founder check-in</p><h3>What needs attention?</h3><p>Use your natural voice. Context is more useful than perfect wording.</p></div>
+        <label htmlFor="chief-message">Message</label>
+        <textarea id="chief-message" value={message} onChange={(event) => setMessage(event.target.value)} maxLength="12000" placeholder="Example: Review the Nickle Nine Neet artist update and prepare the next internal action." required disabled={submitting} />
+        <div className="chief-intake-foot"><small>{message.length.toLocaleString()} / 12,000</small><button className="primary-button" disabled={submitting || !message.trim()} type="submit"><Icon name="arrow" /> {submitting ? "Thinking…" : "Get the next move"}</button></div>
+        {submitError && <p className="form-error" role="alert">{submitError}</p>}
+      </form>
+
+      <section className={`chief-decision ${latest ? `lane-${latest.lane}` : "is-empty"}`} aria-live="polite">
+        {submitting ? <div className="chief-thinking"><div className="loader" /><p>Reading the message, checking active work, and applying founder policy.</p></div> : latest ? <>
+          <div className="chief-decision-head"><p className="eyebrow">{result ? "New decision" : "Latest decision"}</p><span className="status-chip">{latest.lane}</span></div>
+          <div><span className={`brand-chip tone-${BRAND_META[latest.brand]?.tone || "cream"}`}>{latest.brand}</span><h3>{latest.title}</h3><p>{latest.summary}</p></div>
+          <div className="chief-next"><span>Recommended next action</span><p>{latest.recommendedNextAction}</p></div>
+          <div className="chief-policy"><span>{latest.classification}</span><span>{latest.priority} priority</span><span>{latest.risk} risk</span></div>
+          {latest.requiresApproval && <aside><Icon name="bell" size={17} /><div><b>Your approval is required.</b><p>{latest.approvalReason || "This action crosses an external or protected boundary."}</p></div></aside>}
+        </> : <div className="chief-empty"><span><Icon name="message" size={24} /></span><div><h3>Ready when you are.</h3><p>Your decision will appear here. New ideas can cool for 24 hours, while existing commitments keep priority.</p></div></div>}
+      </section>
+    </div>
+
+    <section className="chief-history">
+      <div className="section-heading compact-heading"><div><p className="eyebrow">Private decision log</p><h2>Recent check-ins</h2></div><span className="source-note"><i /> Supabase protected</span></div>
+      {items.length ? <div className="chief-item-list">{items.slice(0, 8).map((item) => <article key={item.id}>
+        <div><span className={`brand-chip tone-${BRAND_META[item.brand]?.tone || "cream"}`}>{item.brand}</span><span className="status-chip">{item.lane}</span></div>
+        <h3>{item.title}</h3><p>{item.recommended_next_action}</p><small>{formatDate(item.created_at, { year: true, time: true })} · {item.status.replaceAll("_", " ")}</small>
+      </article>)}</div> : <div className="professional-empty"><span><Icon name="message" /></span><div><h3>No Chief of Staff check-ins yet.</h3><p>Your first processed message will create the private decision log.</p></div></div>}
+    </section>
+  </section>;
+}
+
 function DevelopmentView() {
   return <section className="view-stack development-view">
     <div className="development-hero">
@@ -443,6 +508,7 @@ function Dashboard({ session, onLogout }) {
   const [dailyBriefings, setDailyBriefings] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [agentItems, setAgentItems] = useState([]);
   const [preferences, setPreferences] = useState(null);
   const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
@@ -455,7 +521,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -466,8 +532,9 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_daily_briefings").select("*").eq("owner_id", FOUNDER_ID).order("briefing_date", { ascending: false }).limit(30),
       supabase.from("founder_documents").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
       supabase.from("founder_applications").select("*").eq("owner_id", FOUNDER_ID).order("updated_at", { ascending: false }),
+      supabase.from("founder_agent_items").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -479,6 +546,7 @@ function Dashboard({ session, onLogout }) {
     if (dailyBriefingResult.data) setDailyBriefings(dailyBriefingResult.data);
     if (documentResult.data) setDocuments(documentResult.data);
     if (applicationResult.data) setApplications(applicationResult.data);
+    if (agentItemResult.data) setAgentItems(agentItemResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
@@ -649,6 +717,7 @@ function Dashboard({ session, onLogout }) {
             <div className="projects-grid">{filteredProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div>
           </section>}
 
+          {view === "chief" && <ChiefOfStaffView items={agentItems} onProcessed={loadData} />}
           {view === "development" && <DevelopmentView />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
