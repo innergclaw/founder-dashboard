@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
   ["chief", "Chief of Staff", "message"],
+  ["agents", "Agents", "layers"],
   ["projects", "Projects", "layers"],
   ["development", "Development", "compass"],
   ["professional", "Professional", "briefcase"],
@@ -461,6 +462,78 @@ function ChiefOfStaffView({ items, onProcessed }) {
   </section>;
 }
 
+function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
+  const availableJobs = jobs.filter((job) => job.status !== "done" && !dispatches.some((dispatch) => dispatch.job_id === job.id && !["completed", "failed", "cancelled"].includes(dispatch.status)));
+  const [jobId, setJobId] = useState(availableJobs[0]?.id || "");
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState("");
+  const [lastDecision, setLastDecision] = useState(null);
+
+  useEffect(() => {
+    if (!availableJobs.some((job) => job.id === jobId)) setJobId(availableJobs[0]?.id || "");
+  }, [availableJobs, jobId]);
+
+  async function dispatch(event) {
+    event.preventDefault();
+    if (!jobId) return;
+    setDispatching(true);
+    setDispatchError("");
+    const { data, error } = await supabase.functions.invoke("founder-dispatcher", { body: { job_id: jobId } });
+    if (error || (!data?.decision && !data?.existing)) {
+      setDispatchError("Agent 2 could not route that job. The job remains unchanged.");
+      setDispatching(false);
+      return;
+    }
+    setLastDecision(data.decision || { targetAgent: data.targetAgent, status: data.status });
+    await onDispatched();
+    setDispatching(false);
+  }
+
+  const activeAgents = agents.filter((agent) => agent.status === "active");
+  const selectedJob = jobs.find((job) => job.id === jobId);
+
+  return <section className="view-stack agents-view">
+    <div className="agents-hero">
+      <div><p className="eyebrow">Founder agent network</p><h2>One voice in.<br />The right worker out.</h2><p>Chief of Staff decides what matters. Dispatcher turns a real job into one clean handoff. Specialist agents stay unavailable until their permissions, tools, and proof standards are ready.</p></div>
+      <div className="agent-signal"><span><i /> {activeAgents.length} active</span><strong>02</strong><small>Dispatcher is live</small></div>
+    </div>
+
+    <div className="agent-control-grid">
+      <form className="dispatch-console" onSubmit={dispatch}>
+        <div><p className="eyebrow">Agent 2 · Dispatcher</p><h3>Route an open job</h3><p>Select one cloud job. Agent 2 will build the handoff and check whether the specialist is actually available.</p></div>
+        <label htmlFor="dispatch-job">Founder job</label>
+        <select id="dispatch-job" value={jobId} onChange={(event) => setJobId(event.target.value)} disabled={dispatching || !availableJobs.length}>
+          {!availableJobs.length && <option value="">No unassigned jobs</option>}
+          {availableJobs.map((job) => <option value={job.id} key={job.id}>{job.brand} · {job.title}</option>)}
+        </select>
+        {selectedJob && <div className="dispatch-preview"><span>{selectedJob.priority} priority</span><p>{selectedJob.details || "No additional job context."}</p></div>}
+        {lastDecision && <div className="dispatch-result" role="status"><Icon name="check" size={18} /><div><b>Routed to {lastDecision.targetAgent.replaceAll("-", " ")}</b><p>{lastDecision.status.replaceAll("_", " ")}</p></div></div>}
+        {dispatchError && <p className="form-error" role="alert">{dispatchError}</p>}
+        <button className="primary-button" type="submit" disabled={dispatching || !jobId}><Icon name="arrow" /> {dispatching ? "Routing…" : "Send to Dispatcher"}</button>
+      </form>
+
+      <section className="agent-rail" aria-labelledby="agent-roster-title">
+        <div><p className="eyebrow">Agent roster</p><h3 id="agent-roster-title">Built in order</h3></div>
+        <div>{agents.map((agent) => <article key={agent.id} className={`agent-node status-${agent.status}`}>
+          <span>{String(agent.agent_number).padStart(2, "0")}</span>
+          <div><small>{agent.status}</small><h4>{agent.name}</h4><p>{agent.role}</p></div>
+        </article>)}</div>
+      </section>
+    </div>
+
+    <section className="dispatch-history">
+      <div className="section-heading compact-heading"><div><p className="eyebrow">Handoff ledger</p><h2>Recent assignments</h2></div><span className="source-note"><i /> Founder only</span></div>
+      {dispatches.length ? <div className="dispatch-list">{dispatches.slice(0, 8).map((dispatch) => <article key={dispatch.id}>
+        <div><span className="brand-chip tone-cream">{dispatch.assignment_type}</span><span className="status-chip">{dispatch.status.replaceAll("_", " ")}</span></div>
+        <h3>{jobs.find((job) => job.id === dispatch.job_id)?.title || "Founder job"}</h3>
+        <p>{dispatch.instructions}</p><small>{dispatch.target_agent.replaceAll("-", " ")} · {formatDate(dispatch.created_at, { year: true, time: true })}</small>
+      </article>)}</div> : <div className="professional-empty"><span><Icon name="layers" /></span><div><h3>No assignments yet.</h3><p>Route an open job when it is ready for a specialist handoff.</p></div></div>}
+    </section>
+
+    <aside className="mobile-channel-note"><Icon name="message" /><div><p className="eyebrow">Recommended mobile channel</p><h3>Telegram for conversation. Dashboard for control.</h3><p>Telegram will accept typed updates and voice notes, return decisions, and offer approval buttons. This authenticated dashboard remains the record for jobs, assignments, and results.</p></div><span>Next connection</span></aside>
+  </section>;
+}
+
 function DevelopmentView() {
   return <section className="view-stack development-view">
     <div className="development-hero">
@@ -509,6 +582,8 @@ function Dashboard({ session, onLogout }) {
   const [documents, setDocuments] = useState([]);
   const [applications, setApplications] = useState([]);
   const [agentItems, setAgentItems] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [dispatches, setDispatches] = useState([]);
   const [preferences, setPreferences] = useState(null);
   const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
@@ -521,7 +596,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult, agentResult, dispatchResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -533,8 +608,10 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_documents").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
       supabase.from("founder_applications").select("*").eq("owner_id", FOUNDER_ID).order("updated_at", { ascending: false }),
       supabase.from("founder_agent_items").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
+      supabase.from("founder_agents").select("*").eq("owner_id", FOUNDER_ID).order("agent_number"),
+      supabase.from("founder_dispatches").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error || agentResult.error || dispatchResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -547,6 +624,8 @@ function Dashboard({ session, onLogout }) {
     if (documentResult.data) setDocuments(documentResult.data);
     if (applicationResult.data) setApplications(applicationResult.data);
     if (agentItemResult.data) setAgentItems(agentItemResult.data);
+    if (agentResult.data) setAgents(agentResult.data);
+    if (dispatchResult.data) setDispatches(dispatchResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
@@ -718,6 +797,7 @@ function Dashboard({ session, onLogout }) {
           </section>}
 
           {view === "chief" && <ChiefOfStaffView items={agentItems} onProcessed={loadData} />}
+          {view === "agents" && <AgentsWorkspace agents={agents} dispatches={dispatches} jobs={jobs} onDispatched={loadData} />}
           {view === "development" && <DevelopmentView />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 

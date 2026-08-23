@@ -5,7 +5,7 @@ const app = readFileSync(new URL("./src/main.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./src/styles.css", import.meta.url), "utf8");
 const supabase = readFileSync(new URL("./src/supabase.js", import.meta.url), "utf8");
 
-for (const marker of ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX", "founder_projects", "founder_schedules", "founder_jobs", "founder_sync_runs", "founder_alerts", "founder_notification_preferences", "founder_brief_runs", "founder_daily_briefings", "founder_documents", "founder_applications", "founder_agent_items", "founder-dashboard-sync", "founder-daily-brief", "founder-chief-of-staff"]) {
+for (const marker of ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX", "founder_projects", "founder_schedules", "founder_jobs", "founder_sync_runs", "founder_alerts", "founder_notification_preferences", "founder_brief_runs", "founder_daily_briefings", "founder_documents", "founder_applications", "founder_agent_items", "founder_agents", "founder_dispatches", "founder-dashboard-sync", "founder-daily-brief", "founder-chief-of-staff", "founder-dispatcher"]) {
   assert.ok(app.includes(marker), `Missing founder dashboard behavior: ${marker}`);
 }
 assert.ok(app.includes("signInWithPassword"), "Secure password authentication must remain enabled");
@@ -22,6 +22,7 @@ for (const trait of ["Relentless consistency", "An ownership mindset", "Radical 
 assert.ok(app.includes('"development", "Development", "compass"') && app.includes("Four phases of the decade"), "The 30–40 founder development view must remain available");
 assert.ok(app.includes("createSignedUrl") && app.includes('from("founder-documents")'), "Professional documents must use private signed storage access");
 assert.ok(app.includes('"chief", "Chief of Staff", "message"') && app.includes("GPT-OSS 120B") && app.includes("Supabase policy gate"), "Agent 1 must remain available with its cloud model and deterministic policy boundary visible");
+assert.ok(app.includes('"agents", "Agents", "layers"') && app.includes("Agent 2 · Dispatcher") && app.includes("Telegram for conversation. Dashboard for control."), "Agent 2 and the mobile communication boundary must remain visible");
 assert.ok(styles.includes("oklch("), "The dashboard must use the OKLCH color system");
 assert.ok(!styles.includes("transition: all"), "Transitions must name the properties they animate");
 assert.ok(styles.includes("min-height: 44px"), "Interactive controls need accessible hit areas");
