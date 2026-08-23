@@ -350,6 +350,35 @@
   .channel-toggles .disabled-toggle { cursor: not-allowed; opacity: 0.62; }
   .briefing-settings > .primary-button { justify-self: start; }
 
+  .development-hero { display: grid; min-height: 380px; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; }
+  .development-hero > div:first-child { display: grid; align-content: center; justify-items: start; padding: clamp(30px, 5vw, 62px); border-radius: 26px; background: radial-gradient(circle at 82% 20%, var(--lime-soft), transparent 25rem), var(--ink-850); box-shadow: var(--shadow-card); }
+  .development-hero h2 { max-width: 850px; margin-top: 14px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3rem, 5.7vw, 6rem); font-weight: 500; line-height: 0.98; letter-spacing: -0.064em; text-wrap: balance; }
+  .development-hero > div:first-child > p:last-child { max-width: 65ch; margin-top: 24px; color: var(--cream-400); line-height: 1.65; text-wrap: pretty; }
+  .development-manifesto { display: grid; grid-template-rows: auto 1fr auto; padding: 28px; border-radius: 22px; color: var(--ink-950); background: var(--lime); box-shadow: 0 24px 60px oklch(0.89 0.205 126 / 0.12); }
+  .development-manifesto > span { font-family: Georgia, "Times New Roman", serif; font-size: 3.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .development-manifesto > span:last-child { justify-self: end; }
+  .development-manifesto > div { display: grid; align-content: center; gap: 12px; }
+  .development-manifesto small { font-size: 0.62rem; font-weight: 850; letter-spacing: 0.1em; text-transform: uppercase; }
+  .development-manifesto strong { font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 3vw, 3rem); font-weight: 500; line-height: 1.02; letter-spacing: -0.05em; }
+  .development-phases, .trait-section { display: grid; gap: 22px; padding: clamp(22px, 3vw, 30px); border-radius: 20px; background: var(--ink-850); box-shadow: var(--shadow-card); }
+  .phase-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; overflow: hidden; border-radius: 16px; background: oklch(1 0 0 / 0.09); }
+  .phase-grid article { min-height: 220px; padding: 22px; background: var(--ink-800); }
+  .phase-grid article > span { display: block; color: var(--lime); font-family: Georgia, "Times New Roman", serif; font-size: 2.2rem; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+  .phase-grid small { display: block; margin-top: 32px; color: var(--muted); font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+  .phase-grid h3 { margin-top: 7px; font-size: 1rem; }
+  .phase-grid p { margin-top: 10px; color: var(--cream-400); font-size: 0.7rem; line-height: 1.6; text-wrap: pretty; }
+  .trait-section > .section-heading h2 { max-width: 870px; text-wrap: balance; }
+  .trait-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .trait-card { display: grid; min-height: 148px; grid-template-columns: 54px minmax(0, 1fr); align-items: start; gap: 17px; padding: 20px; border-radius: 16px; background: var(--ink-800); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.055); }
+  .trait-card > span { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 14px; color: var(--ink-950); background: var(--gold); font-size: 0.7rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .trait-card h3 { font-family: Georgia, "Times New Roman", serif; font-size: 1.32rem; font-weight: 500; line-height: 1.15; letter-spacing: -0.025em; text-wrap: balance; }
+  .trait-card p { max-width: 58ch; margin-top: 10px; color: var(--cream-400); font-size: 0.72rem; line-height: 1.6; text-wrap: pretty; }
+  .development-rule { display: grid; min-height: 180px; grid-template-columns: 60px minmax(0, 1fr); align-items: center; gap: 24px; padding: clamp(24px, 4vw, 42px); border-radius: 20px; color: var(--ink-950); background: var(--cream-50); }
+  .development-rule > span { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 17px; color: var(--cream-50); background: var(--ink-950); }
+  .development-rule .eyebrow { color: oklch(0.42 0.02 105); }
+  .development-rule h2 { margin-top: 7px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 500; letter-spacing: -0.052em; text-wrap: balance; }
+  .development-rule p:last-child { max-width: 70ch; margin-top: 11px; color: oklch(0.35 0.014 105); line-height: 1.6; text-wrap: pretty; }
+
   .professional-hero { display: grid; min-height: 350px; grid-template-columns: minmax(0, 1fr) 320px; align-items: stretch; gap: 18px; }
   .professional-hero > div:first-child { display: grid; align-content: center; justify-items: start; padding: clamp(30px, 4vw, 54px); border-radius: 26px; background: radial-gradient(circle at 82% 22%, var(--gold-soft), transparent 23rem), var(--ink-850); box-shadow: var(--shadow-card); }
   .professional-hero h2 { max-width: 920px; margin-top: 14px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.8rem, 5.4vw, 5.7rem); font-weight: 500; letter-spacing: -0.062em; }
@@ -452,6 +481,7 @@
     .time-settings { grid-template-columns: repeat(2, 1fr); }
     .professional-grid { grid-template-columns: 1fr; }
     .application-card { grid-template-columns: 1fr 1fr; }
+    .phase-grid { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 900px) {
@@ -481,6 +511,8 @@
     .alert-actions { grid-column: 2; flex-wrap: wrap; }
     .professional-hero { grid-template-columns: 1fr; }
     .professional-identity { min-height: 280px; }
+    .development-hero { grid-template-columns: 1fr; }
+    .development-manifesto { min-height: 300px; }
   }
 
   @media (max-width: 640px) {
@@ -531,6 +563,13 @@
     .professional-hero > div:first-child { padding: 30px 22px; border-radius: 21px; }
     .professional-hero h2 { font-size: clamp(2.6rem, 12vw, 4rem); }
     .professional-metrics, .application-card { grid-template-columns: 1fr; }
+    .development-hero > div:first-child { padding: 30px 22px; border-radius: 21px; }
+    .development-hero h2 { font-size: clamp(2.8rem, 13vw, 4.5rem); }
+    .trait-grid, .phase-grid { grid-template-columns: 1fr; }
+    .phase-grid article { min-height: 190px; }
+    .trait-card { grid-template-columns: 46px minmax(0, 1fr); padding: 17px; }
+    .trait-card > span { width: 46px; height: 46px; border-radius: 12px; }
+    .development-rule { grid-template-columns: 1fr; }
     .document-card { grid-template-columns: 44px minmax(0, 1fr) 44px; padding: 14px; }
     .document-icon { width: 44px; height: 44px; }
     .application-actions { grid-template-columns: 1fr 1fr; }

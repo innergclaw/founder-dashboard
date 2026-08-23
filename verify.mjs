@@ -16,10 +16,14 @@ assert.ok(app.includes("Notification.requestPermission"), "On-device briefing no
 assert.ok(app.includes("Apple Messages") && app.includes("Waiting for connector availability"), "Apple Messages must be labeled pending until a connector is available");
 assert.ok(app.includes("Daily voice memo") && app.includes("6:00 PM") && app.includes("8:00 PM"), "The daily voice briefing rhythm must be visible");
 assert.ok(app.includes("Private career command center") && app.includes("Professional docs") && app.includes("Job applications"), "The private Professional workspace must remain available");
+for (const trait of ["Relentless consistency", "An ownership mindset", "Radical delayed gratification", "Obsession with financial literacy", "Emotional discipline in volatile markets", "Multiple income stream architecture", "High-value network cultivation", "Clear generational vision", "Extreme resourcefulness and problem-solving", "Unshakable self-accountability"]) {
+  assert.ok(app.includes(trait), `Missing founder development trait: ${trait}`);
+}
+assert.ok(app.includes('"development", "Development", "compass"') && app.includes("Four phases of the decade"), "The 30–40 founder development view must remain available");
 assert.ok(app.includes("createSignedUrl") && app.includes('from("founder-documents")'), "Professional documents must use private signed storage access");
 assert.ok(styles.includes("oklch("), "The dashboard must use the OKLCH color system");
 assert.ok(!styles.includes("transition: all"), "Transitions must name the properties they animate");
 assert.ok(styles.includes("min-height: 44px"), "Interactive controls need accessible hit areas");
 assert.ok(styles.includes("font-variant-numeric: tabular-nums"), "Changing values must use tabular numbers");
 
-console.log("Founder Dashboard verification passed: private auth, three-brand snapshot, professional documents, applications, proactive briefings, alerts, schedules, jobs, accessibility, and design rules are present.");
+console.log("Founder Dashboard verification passed: private auth, three-brand snapshot, 30–40 development framework, professional documents, applications, proactive briefings, alerts, schedules, jobs, accessibility, and design rules are present.");

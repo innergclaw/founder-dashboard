@@ -9,9 +9,30 @@ const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
   ["projects", "Projects", "layers"],
+  ["development", "Development", "compass"],
   ["professional", "Professional", "briefcase"],
   ["schedule", "Schedule", "calendar"],
   ["jobs", "Jobs", "check"],
+];
+
+const WEALTH_BUILDER_TRAITS = [
+  ["01", "Relentless consistency", "Keep the promise after the excitement wears off."],
+  ["02", "An ownership mindset", "Build equity, control the asset, and protect the relationship."],
+  ["03", "Radical delayed gratification", "Trade short-term appearance for long-term freedom."],
+  ["04", "Obsession with financial literacy", "Know how money moves, compounds, gets taxed, and carries risk."],
+  ["05", "Emotional discipline in volatile markets", "Make decisions from a plan instead of fear, urgency, or hype."],
+  ["06", "Multiple income stream architecture", "Create connected income streams that do not all depend on the same labor."],
+  ["07", "High-value network cultivation", "Build trusted relationships with people who create, teach, fund, and execute."],
+  ["08", "Clear generational vision", "Define what the next generation should inherit, understand, and improve."],
+  ["09", "Extreme resourcefulness and problem-solving", "Use what is available, find the missing piece, and keep moving."],
+  ["10", "Unshakable self-accountability", "Tell yourself the truth, correct course, and finish what matters."],
+];
+
+const DEVELOPMENT_PHASES = [
+  ["30–32", "Foundation", "Consistency, ownership, financial literacy, and self-accountability."],
+  ["33–35", "Architecture", "Delayed gratification, resourcefulness, and connected income streams."],
+  ["36–38", "Expansion", "Emotional discipline, stronger decisions, and a high-value network."],
+  ["39–40", "Stewardship", "Generational vision, protected assets, and systems that can outlive your daily labor."],
 ];
 
 const BRAND_META = {
@@ -44,6 +65,7 @@ function Icon({ name, size = 18 }) {
     briefcase: <><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></>,
     file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></>,
     download: <><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></>,
+    compass: <><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></>,
   };
   return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.grid}</svg>;
 }
@@ -374,6 +396,42 @@ function ProfessionalWorkspace({ documents, applications, onOpenDocument, onUplo
   </section>;
 }
 
+function DevelopmentView() {
+  return <section className="view-stack development-view">
+    <div className="development-hero">
+      <div>
+        <p className="eyebrow">Founder development · 30–40</p>
+        <h2>Build the person who can hold the wealth.</h2>
+        <p>This decade is about capacity before display. The goal is to practice these traits long enough that they shape how you decide, build, invest, and lead.</p>
+      </div>
+      <div className="development-manifesto">
+        <span>30</span>
+        <div><small>Decade intention</small><strong>Move with patience.<br />Build with ownership.</strong></div>
+        <span>40</span>
+      </div>
+    </div>
+
+    <section className="development-phases" aria-labelledby="development-path-title">
+      <div className="section-heading compact-heading"><div><p className="eyebrow">Long-range path</p><h2 id="development-path-title">Four phases of the decade</h2></div><span className="source-note"><i /> Direction, not a deadline</span></div>
+      <div className="phase-grid">{DEVELOPMENT_PHASES.map(([years, title, description], index) => <article key={years}>
+        <span>{years}</span><small>Phase {index + 1}</small><h3>{title}</h3><p>{description}</p>
+      </article>)}</div>
+    </section>
+
+    <section className="trait-section" aria-labelledby="wealth-traits-title">
+      <div className="section-heading"><div><p className="eyebrow">Personal operating code</p><h2 id="wealth-traits-title">The 10 characteristics of high-level wealth builders</h2></div></div>
+      <div className="trait-grid">{WEALTH_BUILDER_TRAITS.map(([number, title, description]) => <article className="trait-card" key={number}>
+        <span>{number}</span><div><h3>{title}</h3><p>{description}</p></div>
+      </article>)}</div>
+    </section>
+
+    <section className="development-rule">
+      <span><Icon name="compass" size={26} /></span>
+      <div><p className="eyebrow">Daily standard</p><h2>Do not rush the identity.</h2><p>Choose one trait to practice through real decisions each week. Review the evidence in your founder briefing. The work is repetition, not performance.</p></div>
+    </section>
+  </section>;
+}
+
 function Dashboard({ session, onLogout }) {
   const initialView = window.location.hash.replace("#", "");
   const [view, setView] = useState(NAV_ITEMS.some(([id]) => id === initialView) ? initialView : "overview");
@@ -591,6 +649,7 @@ function Dashboard({ session, onLogout }) {
             <div className="projects-grid">{filteredProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div>
           </section>}
 
+          {view === "development" && <DevelopmentView />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">
