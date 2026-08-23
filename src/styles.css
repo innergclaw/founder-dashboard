@@ -473,7 +473,8 @@
   .chief-item-list p { color: var(--cream-400); font-size: 0.69rem; line-height: 1.55; }
   .chief-item-list small { align-self: end; color: var(--muted); font-size: 0.59rem; text-transform: capitalize; }
 
-  .agents-hero { display: grid; min-height: 310px; grid-template-columns: minmax(0, 1fr) 230px; align-items: end; gap: 36px; padding: clamp(28px, 4vw, 52px); border-radius: 26px; background: radial-gradient(circle at 84% 25%, var(--blue-soft), transparent 22rem), var(--ink-850); box-shadow: var(--shadow-card); }
+  .agents-view, .agents-view > *, .agents-hero > *, .agent-control-grid > * { min-width: 0; }
+  .agents-hero { display: grid; width: 100%; min-height: 310px; grid-template-columns: minmax(0, 1fr) 230px; align-items: end; gap: 36px; padding: clamp(28px, 4vw, 52px); border-radius: 26px; background: radial-gradient(circle at 84% 25%, var(--blue-soft), transparent 22rem), var(--ink-850); box-shadow: var(--shadow-card); }
   .agents-hero > div:first-child { max-width: 790px; }
   .agents-hero h2 { margin-top: 13px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3.2rem, 6vw, 6.2rem); font-weight: 500; line-height: 0.92; letter-spacing: -0.07em; }
   .agents-hero > div:first-child > p:last-child { max-width: 700px; margin-top: 22px; color: var(--cream-400); line-height: 1.65; }
@@ -482,13 +483,13 @@
   .agent-signal span i { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 12px var(--lime); }
   .agent-signal strong { font-family: Georgia, "Times New Roman", serif; font-size: 4.5rem; font-weight: 500; line-height: 0.9; font-variant-numeric: tabular-nums; }
   .agent-signal small { color: var(--muted); font-size: 0.65rem; }
-  .agent-control-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr); gap: 22px; }
+  .agent-control-grid { display: grid; width: 100%; grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr); gap: 22px; }
   .dispatch-console, .agent-rail { min-height: 520px; padding: clamp(22px, 3vw, 32px); border-radius: 22px; background: var(--ink-850); box-shadow: var(--shadow-card); }
   .dispatch-console { display: grid; align-content: start; gap: 17px; }
   .dispatch-console h3, .agent-rail h3 { margin-top: 8px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 3vw, 3rem); font-weight: 500; letter-spacing: -0.05em; }
   .dispatch-console > div:first-child > p:last-child { max-width: 650px; margin-top: 9px; color: var(--muted); font-size: 0.72rem; line-height: 1.55; }
   .dispatch-console label { color: var(--cream-400); font-size: 0.68rem; font-weight: 750; }
-  .dispatch-console select { min-height: 52px; padding: 0 14px; border: 1px solid oklch(1 0 0 / 0.1); border-radius: 12px; color: var(--cream-50); background: var(--ink-800); outline: 0; }
+  .dispatch-console select { width: 100%; max-width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid oklch(1 0 0 / 0.1); border-radius: 12px; color: var(--cream-50); background: var(--ink-800); outline: 0; }
   .dispatch-console select:focus { border-color: var(--lime); box-shadow: 0 0 0 4px var(--lime-soft); }
   .dispatch-preview { min-height: 110px; padding: 17px; border-radius: 14px; background: oklch(1 0 0 / 0.045); }
   .dispatch-preview span { color: var(--gold); font-size: 0.59rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
