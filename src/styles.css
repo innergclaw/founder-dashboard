@@ -514,6 +514,17 @@
   .dispatch-list h3 { font-size: 0.95rem; }
   .dispatch-list p { color: var(--cream-400); font-size: 0.69rem; line-height: 1.55; }
   .dispatch-list small { align-self: end; color: var(--muted); font-size: 0.59rem; text-transform: capitalize; }
+  .worker-button { display: inline-flex; min-height: 44px; width: fit-content; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border: 1px solid oklch(0.89 0.205 126 / 0.3); border-radius: 10px; color: var(--lime); background: var(--lime-soft); font-size: 0.66rem; font-weight: 800; }
+  .worker-button:hover { border-color: var(--lime); background: oklch(0.89 0.205 126 / 0.14); }
+  .worker-button:active { scale: 0.97; }
+  .worker-button:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+  .worker-button:disabled { cursor: wait; opacity: 0.55; }
+  .dispatch-list article > .worker-report { display: grid; justify-content: stretch; gap: 10px; padding: 14px; border-radius: 12px; background: oklch(1 0 0 / 0.04); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.07); }
+  .worker-report > span { color: var(--lime); font-size: 0.57rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+  .worker-report > p { max-height: 280px; overflow: auto; white-space: pre-wrap; color: var(--cream-200); font-size: 0.65rem; line-height: 1.62; }
+  .worker-sources { display: flex; flex-wrap: wrap; gap: 7px; }
+  .worker-sources a { display: inline-flex; min-height: 32px; align-items: center; padding: 0 10px; border-radius: 8px; color: var(--cream-200); background: var(--ink-800); font-size: 0.57rem; text-decoration: none; }
+  .worker-sources a:hover { color: var(--lime); }
   .mobile-channel-note { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 17px; padding: 22px; border-radius: 18px; color: var(--ink-950); background: var(--cream-50); }
   .mobile-channel-note > .icon { padding: 12px; box-sizing: content-box; border-radius: 13px; background: oklch(0.15 0.01 115 / 0.08); }
   .mobile-channel-note h3 { margin-top: 5px; font-size: 1rem; }
@@ -681,6 +692,7 @@
     .dispatch-console, .agent-rail { min-height: 0; padding: 22px 18px; }
     .dispatch-console > .primary-button { width: 100%; }
     .dispatch-list { grid-template-columns: 1fr; }
+    .worker-button { width: 100%; }
     .mobile-channel-note { grid-template-columns: 44px 1fr; }
     .mobile-channel-note > span { grid-column: 2; justify-self: start; }
   }

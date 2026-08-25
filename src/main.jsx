@@ -67,6 +67,7 @@ function Icon({ name, size = 18 }) {
     briefcase: <><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></>,
     file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></>,
     download: <><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
     compass: <><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></>,
   };
   return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.grid}</svg>;
@@ -468,6 +469,8 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState("");
   const [lastDecision, setLastDecision] = useState(null);
+  const [runningDispatchId, setRunningDispatchId] = useState("");
+  const [workerError, setWorkerError] = useState("");
 
   useEffect(() => {
     if (!availableJobs.some((job) => job.id === jobId)) setJobId(availableJobs[0]?.id || "");
@@ -487,6 +490,23 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
     setLastDecision(data.decision || { targetAgent: data.targetAgent, status: data.status });
     await onDispatched();
     setDispatching(false);
+  }
+
+  async function runWorker(dispatch) {
+    if (dispatch.target_agent !== "research-analyst") return;
+    setRunningDispatchId(dispatch.id);
+    setWorkerError("");
+    const { data, error } = await supabase.functions.invoke("founder-research-analyst", {
+      body: { dispatch_id: dispatch.id },
+    });
+    if (error || !data?.result) {
+      setWorkerError("Agent 3 could not finish that research run. The assignment is saved for retry.");
+      setRunningDispatchId("");
+      await onDispatched();
+      return;
+    }
+    await onDispatched();
+    setRunningDispatchId("");
   }
 
   const activeAgents = agents.filter((agent) => agent.status === "active");
@@ -523,10 +543,18 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
 
     <section className="dispatch-history">
       <div className="section-heading compact-heading"><div><p className="eyebrow">Handoff ledger</p><h2>Recent assignments</h2></div><span className="source-note"><i /> Founder only</span></div>
+      {workerError && <p className="form-error" role="alert">{workerError}</p>}
       {dispatches.length ? <div className="dispatch-list">{dispatches.slice(0, 8).map((dispatch) => <article key={dispatch.id}>
         <div><span className="brand-chip tone-cream">{dispatch.assignment_type}</span><span className="status-chip">{dispatch.status.replaceAll("_", " ")}</span></div>
         <h3>{jobs.find((job) => job.id === dispatch.job_id)?.title || "Founder job"}</h3>
-        <p>{dispatch.instructions}</p><small>{dispatch.target_agent.replaceAll("-", " ")} · {formatDate(dispatch.created_at, { year: true, time: true })}</small>
+        <p>{dispatch.instructions}</p>
+        {dispatch.result?.report && <div className="worker-report">
+          <span>Agent 3 report</span>
+          <p>{dispatch.result.report}</p>
+          {dispatch.result.sources?.length > 0 && <div className="worker-sources">{dispatch.result.sources.slice(0, 6).map((source) => <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>{source.title}</a>)}</div>}
+        </div>}
+        {dispatch.target_agent === "research-analyst" && ["queued", "accepted", "failed"].includes(dispatch.status) && <button className="worker-button" type="button" disabled={Boolean(runningDispatchId)} onClick={() => runWorker(dispatch)}><Icon name="search" size={16} /> {runningDispatchId === dispatch.id ? "Researching…" : dispatch.status === "failed" ? "Retry research" : "Run research"}</button>}
+        <small>{dispatch.target_agent.replaceAll("-", " ")} · {formatDate(dispatch.created_at, { year: true, time: true })}</small>
       </article>)}</div> : <div className="professional-empty"><span><Icon name="layers" /></span><div><h3>No assignments yet.</h3><p>Route an open job when it is ready for a specialist handoff.</p></div></div>}
     </section>
 
