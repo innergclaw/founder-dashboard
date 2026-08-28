@@ -525,6 +525,10 @@
   .worker-sources { display: flex; flex-wrap: wrap; gap: 7px; }
   .worker-sources a { display: inline-flex; min-height: 32px; align-items: center; padding: 0 10px; border-radius: 8px; color: var(--cream-200); background: var(--ink-800); font-size: 0.57rem; text-decoration: none; }
   .worker-sources a:hover { color: var(--lime); }
+  .worker-evidence { display: flex; flex-wrap: wrap; gap: 7px; }
+  .worker-evidence a, .worker-evidence span { display: inline-flex; min-height: 32px; align-items: center; padding: 0 10px; border-radius: 8px; color: var(--cream-200); background: var(--ink-800); font-size: 0.57rem; text-decoration: none; }
+  .worker-evidence a { color: var(--lime); }
+  .worker-evidence a:hover { text-decoration: underline; }
   .mobile-channel-note { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 17px; padding: 22px; border-radius: 18px; color: var(--ink-950); background: var(--cream-50); }
   .mobile-channel-note > .icon { padding: 12px; box-sizing: content-box; border-radius: 13px; background: oklch(0.15 0.01 115 / 0.08); }
   .mobile-channel-note h3 { margin-top: 5px; font-size: 1rem; }

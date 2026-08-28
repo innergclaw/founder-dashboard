@@ -493,14 +493,25 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
   }
 
   async function runWorker(dispatch) {
-    if (dispatch.target_agent !== "research-analyst") return;
+    const workers = {
+      "research-analyst": {
+        endpoint: "founder-research-analyst",
+        failure: "Agent 3 could not finish that research run. The assignment is saved for retry.",
+      },
+      "web-builder": {
+        endpoint: "founder-web-builder",
+        failure: "Agent 4 could not finish that repository inspection. The assignment is saved for retry.",
+      },
+    };
+    const worker = workers[dispatch.target_agent];
+    if (!worker) return;
     setRunningDispatchId(dispatch.id);
     setWorkerError("");
-    const { data, error } = await supabase.functions.invoke("founder-research-analyst", {
+    const { data, error } = await supabase.functions.invoke(worker.endpoint, {
       body: { dispatch_id: dispatch.id },
     });
     if (error || !data?.result) {
-      setWorkerError("Agent 3 could not finish that research run. The assignment is saved for retry.");
+      setWorkerError(worker.failure);
       setRunningDispatchId("");
       await onDispatched();
       return;
@@ -515,7 +526,7 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
   return <section className="view-stack agents-view">
     <div className="agents-hero">
       <div><p className="eyebrow">Founder agent network</p><h2>One voice in.<br />The right worker out.</h2><p>Chief of Staff decides what matters. Dispatcher turns a real job into one clean handoff. Specialist agents stay unavailable until their permissions, tools, and proof standards are ready.</p></div>
-      <div className="agent-signal"><span><i /> {activeAgents.length} active</span><strong>02</strong><small>Dispatcher is live</small></div>
+      <div className="agent-signal"><span><i /> {activeAgents.length} active</span><strong>{String(activeAgents.length).padStart(2, "0")}</strong><small>Cloud workers live</small></div>
     </div>
 
     <div className="agent-control-grid">
@@ -549,16 +560,18 @@ function AgentsWorkspace({ agents, dispatches, jobs, onDispatched }) {
         <h3>{jobs.find((job) => job.id === dispatch.job_id)?.title || "Founder job"}</h3>
         <p>{dispatch.instructions}</p>
         {dispatch.result?.report && <div className="worker-report">
-          <span>Agent 3 report</span>
+          <span>{dispatch.target_agent === "web-builder" ? "Agent 4 build brief" : "Agent 3 report"}</span>
           <p>{dispatch.result.report}</p>
           {dispatch.result.sources?.length > 0 && <div className="worker-sources">{dispatch.result.sources.slice(0, 6).map((source) => <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>{source.title}</a>)}</div>}
+          {dispatch.result.repositoryUrl && <div className="worker-evidence"><a href={dispatch.result.repositoryUrl} target="_blank" rel="noreferrer">{dispatch.result.repository}</a><span>{dispatch.result.filesReviewed?.length || 0} files reviewed</span><span>{dispatch.result.pagesEnabled ? "Pages detected" : "Pages not detected"}</span></div>}
         </div>}
         {dispatch.target_agent === "research-analyst" && ["queued", "accepted", "failed"].includes(dispatch.status) && <button className="worker-button" type="button" disabled={Boolean(runningDispatchId)} onClick={() => runWorker(dispatch)}><Icon name="search" size={16} /> {runningDispatchId === dispatch.id ? "Researching…" : dispatch.status === "failed" ? "Retry research" : "Run research"}</button>}
+        {dispatch.target_agent === "web-builder" && ["queued", "accepted", "failed"].includes(dispatch.status) && <button className="worker-button" type="button" disabled={Boolean(runningDispatchId)} onClick={() => runWorker(dispatch)}><Icon name="layers" size={16} /> {runningDispatchId === dispatch.id ? "Inspecting repository…" : dispatch.status === "failed" ? "Retry inspection" : "Prepare build brief"}</button>}
         <small>{dispatch.target_agent.replaceAll("-", " ")} · {formatDate(dispatch.created_at, { year: true, time: true })}</small>
       </article>)}</div> : <div className="professional-empty"><span><Icon name="layers" /></span><div><h3>No assignments yet.</h3><p>Route an open job when it is ready for a specialist handoff.</p></div></div>}
     </section>
 
-    <aside className="mobile-channel-note"><Icon name="message" /><div><p className="eyebrow">Recommended mobile channel</p><h3>Telegram for conversation. Dashboard for control.</h3><p>Telegram will accept typed updates and voice notes, return decisions, and offer approval buttons. This authenticated dashboard remains the record for jobs, assignments, and results.</p></div><span>Next connection</span></aside>
+    <aside className="mobile-channel-note"><Icon name="message" /><div><p className="eyebrow">Mobile command channel</p><h3>Build every worker first. Connect one inbox second.</h3><p>The mobile bridge will be chosen after Agents 5 through 7 have safe cloud homes. This dashboard remains the control record for jobs, approvals, handoffs, and proof.</p></div><span>After Agent 7</span></aside>
   </section>;
 }
 
