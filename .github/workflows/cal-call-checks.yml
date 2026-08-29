@@ -1,0 +1,71 @@
+name: Check Founder Cal.com Calls
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Check mode for a manual cloud test
+        required: false
+        default: test
+        type: choice
+        options:
+          - test
+          - manual
+
+permissions:
+  contents: read
+
+concurrency:
+  group: founder-cal-call-checks
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Select the Eastern check window
+        id: window
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_MODE: ${{ inputs.mode || 'test' }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mode=$REQUESTED_MODE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          EASTERN_HOUR=$(TZ=America/New_York date +%H)
+          if [ "$EASTERN_HOUR" = "07" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mode=morning" >> "$GITHUB_OUTPUT"
+          elif [ "$EASTERN_HOUR" = "19" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mode=evening" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "mode=auto" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read Cal.com and update the private dashboard
+        if: steps.window.outputs.run == 'true'
+        env:
+          CAL_API_KEY: ${{ secrets.CAL_API_KEY }}
+          SUPABASE_ANON_JWT: ${{ secrets.SUPABASE_ANON_JWT }}
+          CHECK_MODE: ${{ steps.window.outputs.mode }}
+          CAL_SYNC_URL: https://zkyhhoxcrjkhywblzehr.supabase.co/functions/v1/founder-cal-sync
+        run: |
+          test -n "$CAL_API_KEY"
+          test -n "$SUPABASE_ANON_JWT"
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST "$CAL_SYNC_URL" \
+            --header "Authorization: Bearer $SUPABASE_ANON_JWT" \
+            --header "X-Cal-API-Key: $CAL_API_KEY" \
+            --header "Content-Type: application/json" \
+            --data "{\"mode\":\"$CHECK_MODE\"}")
+          echo "$RESPONSE" | jq --exit-status '.ok == true' >/dev/null
+          echo "$RESPONSE" | jq '{mode, today_count, week_count, checked_at}'
+

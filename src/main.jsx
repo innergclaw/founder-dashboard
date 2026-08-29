@@ -96,6 +96,17 @@ function formatBriefingDate(value) {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
+function easternDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const item = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${item.year}-${item.month}-${item.day}`;
+}
+
 function timeAgo(value) {
   if (!value) return "No activity found";
   const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
@@ -221,6 +232,21 @@ function ScheduleCard({ item }) {
     <div className={`schedule-mark tone-${meta.tone}`}><Icon name="clock" /></div>
     <div><div className="schedule-meta"><span className={`brand-chip tone-${meta.tone}`}>{meta.short}</span><span>{item.source}</span></div><h3>{item.name}</h3><p>{item.schedule_label}</p>{item.notes && <small>{item.notes}</small>}</div>
     <span className={`status-chip status-${item.status}`}>{item.status}</span>
+  </article>;
+}
+
+function CalendarCallCard({ item }) {
+  const attendeeNames = Array.isArray(item.attendee_names) ? item.attendee_names : [];
+  const locationIsLink = /^https?:\/\//i.test(item.location || "");
+  return <article className="schedule-card call-card">
+    <div className="schedule-mark tone-blue"><Icon name="calendar" /></div>
+    <div>
+      <div className="schedule-meta"><span className="brand-chip tone-blue">CAL</span><span>{formatDate(item.start_at, { year: true, time: true })}</span></div>
+      <h3>{item.title}</h3>
+      <p>{attendeeNames.length ? `With ${attendeeNames.join(", ")}` : "No attendee name supplied"}</p>
+      <small>{formatDate(item.start_at, { time: true })} to {formatDate(item.end_at, { time: true })} Eastern</small>
+    </div>
+    <div className="call-actions"><span className={`status-chip status-${item.status}`}>{item.status}</span>{locationIsLink && <a href={item.location} target="_blank" rel="noreferrer">Open call <Icon name="external" size={15} /></a>}</div>
   </article>;
 }
 
@@ -617,6 +643,7 @@ function Dashboard({ session, onLogout }) {
   const [brandFilter, setBrandFilter] = useState("all");
   const [projects, setProjects] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [dailyBriefings, setDailyBriefings] = useState([]);
@@ -628,6 +655,7 @@ function Dashboard({ session, onLogout }) {
   const [preferences, setPreferences] = useState(null);
   const [briefRun, setBriefRun] = useState(null);
   const [syncRun, setSyncRun] = useState(null);
+  const [calendarSyncRun, setCalendarSyncRun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
@@ -637,7 +665,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult, agentResult, dispatchResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult, agentResult, dispatchResult, calendarResult, calendarSyncResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -651,8 +679,10 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_agent_items").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
       supabase.from("founder_agents").select("*").eq("owner_id", FOUNDER_ID).order("agent_number"),
       supabase.from("founder_dispatches").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
+      supabase.from("founder_calendar_events").select("*").eq("owner_id", FOUNDER_ID).eq("is_current", true).gte("start_at", new Date().toISOString()).order("start_at").limit(100),
+      supabase.from("founder_calendar_sync_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error || agentResult.error || dispatchResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error || agentResult.error || dispatchResult.error || calendarResult.error || calendarSyncResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -667,6 +697,8 @@ function Dashboard({ session, onLogout }) {
     if (agentItemResult.data) setAgentItems(agentItemResult.data);
     if (agentResult.data) setAgents(agentResult.data);
     if (dispatchResult.data) setDispatches(dispatchResult.data);
+    if (calendarResult.data) setCalendarEvents(calendarResult.data);
+    if (calendarSyncResult.data) setCalendarSyncRun(calendarSyncResult.data);
     setLoading(false);
     setSyncing(false);
   }, []);
@@ -779,6 +811,7 @@ function Dashboard({ session, onLogout }) {
   const openJobs = jobs.filter((job) => job.status !== "done");
   const unreadAlerts = alerts.filter((alert) => alert.status === "unread");
   const dueJobs = openJobs.filter((job) => job.due_at && new Date(job.due_at) <= new Date(Date.now() + 7 * 86400000));
+  const todayCalls = calendarEvents.filter((item) => easternDateKey(item.start_at) === easternDateKey());
   const health = projects.length ? Math.round(projects.reduce((sum, project) => sum + project.health, 0) / projects.length) : 0;
   const focus = openJobs.find((job) => job.priority === "urgent") || openJobs.find((job) => job.priority === "high");
 
@@ -805,11 +838,11 @@ function Dashboard({ session, onLogout }) {
               <div className="hero-status"><span>Overall system health</span><strong>{health}<small>%</small></strong><i><b style={{ width: `${health}%` }} /></i></div>
             </div>
             <button className={`briefing-strip ${unreadAlerts.some((alert) => alert.severity === "urgent") ? "has-urgent" : ""}`} onClick={() => navigate("briefing")} type="button"><span className="briefing-strip-icon"><Icon name="bell" /></span><span><small>Proactive founder briefing</small><b>{unreadAlerts.length ? `${unreadAlerts.length} update${unreadAlerts.length === 1 ? "" : "s"} waiting before check-in` : "You are caught up. The cloud is still watching."}</b></span><em>{briefRun?.finished_at ? `Last pulse ${syncAge(briefRun.finished_at)}` : "Briefing engine starting"}</em><Icon name="arrow" /></button>
-            <div className="metrics-grid"><Metric label="Priority projects" value={projects.length} detail={`${BRAND_ORDER.length} connected brands`} tone="lime" /><Metric label="Active schedules" value={schedules.filter((item) => item.status === "active").length} detail="Codex reminders mirrored" tone="gold" /><Metric label="Open jobs" value={openJobs.length} detail={dueJobs.length ? `${dueJobs.length} due within 7 days` : "No immediate deadlines"} tone="blue" /><Metric label="Cloud pulse" value="1 hr" detail="Checks before you do" /></div>
+            <div className="metrics-grid"><Metric label="Priority projects" value={projects.length} detail={`${BRAND_ORDER.length} connected brands`} tone="lime" /><Metric label="Calls this week" value={calendarEvents.length} detail={todayCalls.length ? `${todayCalls.length} scheduled today` : "No calls today"} tone="gold" /><Metric label="Open jobs" value={openJobs.length} detail={dueJobs.length ? `${dueJobs.length} due within 7 days` : "No immediate deadlines"} tone="blue" /><Metric label="Cloud pulse" value="1 hr" detail="Checks before you do" /></div>
             <div className="section-heading"><div><p className="eyebrow">The three engines</p><h2>Your ecosystem at a glance</h2></div><button className="text-action" onClick={() => navigate("projects")} type="button">View every project <Icon name="arrow" size={16} /></button></div>
             <div className="brand-grid">{BRAND_ORDER.map((brand) => <BrandCard key={brand} brand={brand} projects={projects.filter((project) => project.brand === brand)} jobs={jobs} onOpen={openBrand} />)}</div>
             <div className="overview-split">
-              <section><div className="section-heading compact-heading"><div><p className="eyebrow">Operating rhythm</p><h2>Scheduled reminders</h2></div><button className="text-action" onClick={() => navigate("schedule")} type="button">Full schedule <Icon name="arrow" size={16} /></button></div><div className="schedule-list">{schedules.slice(0, 2).map((item) => <ScheduleCard item={item} key={item.id} />)}</div></section>
+              <section><div className="section-heading compact-heading"><div><p className="eyebrow">Calls and reminders</p><h2>Your next scheduled move</h2></div><button className="text-action" onClick={() => navigate("schedule")} type="button">Full schedule <Icon name="arrow" size={16} /></button></div><div className="schedule-list">{calendarEvents[0] ? <CalendarCallCard item={calendarEvents[0]} /> : schedules.slice(0, 1).map((item) => <ScheduleCard item={item} key={item.id} />)}</div></section>
               <section className="system-panel"><div><p className="eyebrow">Cloud infrastructure</p><h2>Always available</h2><p>The dashboard and its data stay online when your Mac is closed. GitHub Pages serves the interface; Supabase protects your founder data and verifies project health throughout the day.</p></div><div className="system-lines"><span><Icon name="cloud" /> Database and authentication <b>Online</b></span><span><Icon name="github" /> Automatic project checks <b>{syncRun?.finished_at ? timeAgo(syncRun.finished_at) : "Starting"}</b></span><span><Icon name="clock" /> Codex reminder mirror <b>{schedules.length} active</b></span></div></section>
             </div>
           </section>}
@@ -843,9 +876,12 @@ function Dashboard({ session, onLogout }) {
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">
-            <div className="page-lead"><div><p className="eyebrow">Founder rhythm</p><h2>Scheduled reminders</h2><p>Your active recurring Codex work, mirrored into one cloud view.</p></div><span className="source-note"><i /> Source of truth: Codex Automations</span></div>
+            <div className="page-lead"><div><p className="eyebrow">Founder rhythm</p><h2>Calls and scheduled work</h2><p>See upcoming Cal.com calls and the cloud checks that keep your week current.</p></div><span className="source-note"><i /> Cal.com checked at 7 AM and 7 PM</span></div>
+            <div className="section-heading compact-heading"><div><p className="eyebrow">Next 7 days</p><h2>Upcoming Cal.com calls</h2></div><span className="source-note"><i /> {calendarSyncRun?.finished_at ? `Checked ${syncAge(calendarSyncRun.finished_at)}` : "First check pending"}</span></div>
+            {calendarEvents.length ? <div className="schedule-board">{calendarEvents.map((item) => <CalendarCallCard item={item} key={item.id} />)}</div> : <div className="empty-jobs"><span><Icon name="calendar" size={26} /></span><h3>No upcoming calls.</h3><p>The 7:00 AM and 7:00 PM checks will keep this list current.</p></div>}
+            <div className="section-heading compact-heading"><div><p className="eyebrow">Cloud rhythm</p><h2>Automated checks and reminders</h2></div><span className="source-note"><i /> Verified schedules</span></div>
             <div className="schedule-board">{schedules.map((item) => <ScheduleCard item={item} key={item.id} />)}</div>
-            <aside className="context-note"><Icon name="clock" /><div><b>Schedule boundary</b><p>This dashboard reflects the active automation schedule. Changes to actual delivery timing remain controlled by Codex Automations so the interface never claims a reminder was scheduled when it was only written to a database.</p></div></aside>
+            <aside className="context-note"><Icon name="clock" /><div><b>Two sources of truth</b><p>Cal.com supplies your calls. GitHub Actions and Codex Automations control the checks and reminders shown here.</p></div></aside>
           </section>}
 
           {view === "jobs" && <section className="view-stack">

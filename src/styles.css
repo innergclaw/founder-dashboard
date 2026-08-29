@@ -232,6 +232,9 @@
   .schedule-card h3 { font-size: 0.95rem; }
   .schedule-card p { margin-top: 6px; color: var(--cream-400); font-size: 0.74rem; }
   .schedule-card small { display: block; margin-top: 8px; color: var(--muted); font-size: 0.66rem; }
+  .call-actions { display: grid; justify-items: end; gap: 10px; }
+  .call-actions a { display: inline-flex; min-height: 44px; align-items: center; gap: 7px; color: var(--blue); font-size: 0.7rem; font-weight: 800; }
+  .call-actions a:hover { color: var(--cream-50); }
   .brand-chip, .status-chip, .priority-chip { display: inline-flex; min-height: 24px; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
   .brand-chip { color: var(--tone); background: var(--tone-soft); }
   .status-chip { color: var(--cream-400); background: oklch(1 0 0 / 0.06); }
@@ -646,6 +649,7 @@
     .filter-tabs button { flex: 1; min-width: 0; }
     .schedule-card { grid-template-columns: 44px minmax(0, 1fr); }
     .schedule-card > .status-chip { grid-column: 2; justify-self: start; }
+    .call-card .call-actions { grid-column: 2; justify-items: start; }
     .schedule-mark { width: 44px; height: 44px; }
     .job-summary { grid-template-columns: repeat(2, 1fr); }
     .job-summary span:nth-child(3) { box-shadow: 0 -1px 0 oklch(1 0 0 / 0.07); }
