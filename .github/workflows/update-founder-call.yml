@@ -1,0 +1,56 @@
+name: Update Founder Q&A Call
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: founder-cal-event-maintenance
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set the Founder Q&A call to 30 minutes
+        env:
+          CAL_API_KEY: ${{ secrets.CAL_API_KEY }}
+          CAL_API_VERSION: 2024-06-14
+          EVENT_SLUG: founder-q-aa-call
+        run: |
+          set -euo pipefail
+          test -n "$CAL_API_KEY"
+
+          read_event_types() {
+            curl --fail-with-body --silent --show-error \
+              --request GET "https://api.cal.com/v2/event-types" \
+              --header "Authorization: Bearer $CAL_API_KEY" \
+              --header "cal-api-version: $CAL_API_VERSION"
+          }
+
+          BEFORE=$(read_event_types)
+          EVENT=$(echo "$BEFORE" | jq --arg slug "$EVENT_SLUG" \
+            '[.data[] | select(.slug == $slug)] | if length == 1 then .[0] else error("Founder Q&A event type was not found exactly once") end')
+          EVENT_ID=$(echo "$EVENT" | jq --raw-output '.id')
+
+          echo "Before update:"
+          echo "$EVENT" | jq '{id, slug, lengthInMinutes, price, currency}'
+
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request PATCH "https://api.cal.com/v2/event-types/$EVENT_ID" \
+            --header "Authorization: Bearer $CAL_API_KEY" \
+            --header "Content-Type: application/json" \
+            --header "cal-api-version: $CAL_API_VERSION" \
+            --data '{"lengthInMinutes":30}')
+          echo "$RESPONSE" | jq --exit-status '.status == "success"' >/dev/null
+
+          AFTER=$(read_event_types)
+          VERIFIED=$(echo "$AFTER" | jq --arg slug "$EVENT_SLUG" \
+            '[.data[] | select(.slug == $slug)] | if length == 1 then .[0] else error("Founder Q&A event type was not found exactly once") end')
+          echo "$VERIFIED" | jq --exit-status '.lengthInMinutes == 30' >/dev/null
+
+          echo "Verified update:"
+          echo "$VERIFIED" | jq '{id, slug, lengthInMinutes, price, currency}'
