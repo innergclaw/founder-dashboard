@@ -8,6 +8,7 @@ const BRAND_ORDER = ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX"];
 const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
+  ["runs", "Daily Runs", "refresh"],
   ["chief", "Chief of Staff", "message"],
   ["agents", "Agents", "layers"],
   ["projects", "Projects", "layers"],
@@ -293,6 +294,68 @@ function DailyReflection({ briefings }) {
     </> : <div className="reflection-empty">
       <span><Icon name="message" size={24} /></span>
       <div><h3>Your first voice briefing will appear here.</h3><p>At 6:00 PM, Codex will remind you to prepare. Send the voice memo around 8:00 PM with what you completed, what changed, what is blocked, tomorrow's priorities, and the rest-of-week focus.</p></div>
+    </div>}
+  </section>;
+}
+
+function DailyRunSection({ title, items, tone = "neutral" }) {
+  const entries = Array.isArray(items) ? items : [];
+  return <section className={`daily-run-section tone-${tone}`}>
+    <h3>{title}</h3>
+    {entries.length ? <ul>{entries.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p>None recorded.</p>}
+  </section>;
+}
+
+function DailyRunSources({ sources }) {
+  const entries = Array.isArray(sources) ? sources : [];
+  if (!entries.length) return null;
+  return <div className="daily-run-sources">
+    <span>Verified sources</span>
+    <div>{entries.map((source, index) => {
+      const url = typeof source === "string" && /^https?:\/\//i.test(source) ? source : source?.url;
+      const label = typeof source === "string" ? source : source?.label || source?.url || `Source ${index + 1}`;
+      return url ? <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>{label}<Icon name="external" size={14} /></a> : <span key={`${label}-${index}`}>{label}</span>;
+    })}</div>
+  </div>;
+}
+
+function DailyRunContent({ run }) {
+  return <>
+    <div className="daily-run-grid">
+      <DailyRunSection title="What changed" items={run.changed} tone="lime" />
+      <DailyRunSection title="What was decided" items={run.decisions} tone="blue" />
+      <DailyRunSection title="What failed or remains blocked" items={run.failures} tone="gold" />
+      <DailyRunSection title="Where to resume" items={run.resume_next} tone="lime" />
+    </div>
+    <DailyRunSources sources={run.sources} />
+  </>;
+}
+
+function DailyRunsView({ runs }) {
+  const latest = runs[0];
+  return <section className="view-stack daily-runs-view">
+    <div className="page-lead">
+      <div><p className="eyebrow">Private operating record</p><h2>Daily runs</h2><p>Review the work. See each decision. Start the next day with a clear action.</p></div>
+      <span className="source-note"><i /> ASD-STE100-style language</span>
+    </div>
+    {latest ? <>
+      <article className="daily-run-latest">
+        <div className="daily-run-head">
+          <div><span>{latest.run_type === "weekly" ? "Weekly founder review" : "Daily founder operating report"}</span><time dateTime={latest.run_date}>{formatBriefingDate(latest.run_date)}</time></div>
+          <b>{latest.run_type}</b>
+        </div>
+        <div className="daily-run-title"><h2>{latest.title || (latest.run_type === "weekly" ? "Weekly founder review" : "Daily founder operating report")}</h2><p>{latest.summary || "This run contains the verified work record for this date."}</p></div>
+        <DailyRunContent run={latest} />
+      </article>
+      {runs.length > 1 && <section className="daily-run-history" aria-labelledby="daily-run-history-title">
+        <div className="section-heading compact-heading"><div><p className="eyebrow">Run archive</p><h2 id="daily-run-history-title">Earlier reports</h2></div><span className="source-note"><i /> {runs.length - 1} saved</span></div>
+        <div>{runs.slice(1).map((run) => <details className="daily-run-history-item" key={run.id}>
+          <summary><span><small>{run.run_type}</small><strong>{run.title || (run.run_type === "weekly" ? "Weekly founder review" : "Daily founder operating report")}</strong></span><time dateTime={run.run_date}>{formatBriefingDate(run.run_date)}</time><Icon name="plus" size={17} /></summary>
+          <div className="daily-run-history-content">{run.summary && <p>{run.summary}</p>}<DailyRunContent run={run} /></div>
+        </details>)}</div>
+      </section>}
+    </> : <div className="empty-jobs daily-runs-empty">
+      <span><Icon name="refresh" size={26} /></span><h3>No daily run is saved yet.</h3><p>The first report will appear after the 8:00 PM Eastern run. It will show what changed, what was decided, what failed, and where to resume.</p>
     </div>}
   </section>;
 }
@@ -647,6 +710,7 @@ function Dashboard({ session, onLogout }) {
   const [jobs, setJobs] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [dailyBriefings, setDailyBriefings] = useState([]);
+  const [dailyRuns, setDailyRuns] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [applications, setApplications] = useState([]);
   const [agentItems, setAgentItems] = useState([]);
@@ -665,7 +729,7 @@ function Dashboard({ session, onLogout }) {
   const loadData = useCallback(async () => {
     setSyncing(true);
     setError("");
-    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, documentResult, applicationResult, agentItemResult, agentResult, dispatchResult, calendarResult, calendarSyncResult] = await Promise.all([
+    const [projectResult, scheduleResult, jobResult, syncResult, alertResult, preferenceResult, briefResult, dailyBriefingResult, dailyRunResult, documentResult, applicationResult, agentItemResult, agentResult, dispatchResult, calendarResult, calendarSyncResult] = await Promise.all([
       supabase.from("founder_projects").select("*").eq("owner_id", FOUNDER_ID).order("brand").order("sort_order"),
       supabase.from("founder_schedules").select("*").eq("owner_id", FOUNDER_ID).order("created_at"),
       supabase.from("founder_jobs").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
@@ -674,6 +738,7 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_notification_preferences").select("*").eq("owner_id", FOUNDER_ID).maybeSingle(),
       supabase.from("founder_brief_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("founder_daily_briefings").select("*").eq("owner_id", FOUNDER_ID).order("briefing_date", { ascending: false }).limit(30),
+      supabase.from("founder_daily_runs").select("*").eq("owner_id", FOUNDER_ID).order("run_date", { ascending: false }).order("created_at", { ascending: false }).limit(60),
       supabase.from("founder_documents").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }),
       supabase.from("founder_applications").select("*").eq("owner_id", FOUNDER_ID).order("updated_at", { ascending: false }),
       supabase.from("founder_agent_items").select("*").eq("owner_id", FOUNDER_ID).order("created_at", { ascending: false }).limit(25),
@@ -682,7 +747,7 @@ function Dashboard({ session, onLogout }) {
       supabase.from("founder_calendar_events").select("*").eq("owner_id", FOUNDER_ID).eq("is_current", true).gte("start_at", new Date().toISOString()).order("start_at").limit(100),
       supabase.from("founder_calendar_sync_runs").select("*").eq("owner_id", FOUNDER_ID).order("started_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || documentResult.error || applicationResult.error || agentItemResult.error || agentResult.error || dispatchResult.error || calendarResult.error || calendarSyncResult.error;
+    const firstError = projectResult.error || scheduleResult.error || jobResult.error || syncResult.error || alertResult.error || preferenceResult.error || briefResult.error || dailyBriefingResult.error || dailyRunResult.error || documentResult.error || applicationResult.error || agentItemResult.error || agentResult.error || dispatchResult.error || calendarResult.error || calendarSyncResult.error;
     if (firstError) setError("Cloud sync is temporarily unavailable. Your last loaded view is still here.");
     if (projectResult.data) setProjects(projectResult.data);
     if (scheduleResult.data) setSchedules(scheduleResult.data);
@@ -692,6 +757,7 @@ function Dashboard({ session, onLogout }) {
     if (preferenceResult.data) setPreferences(preferenceResult.data);
     if (briefResult.data) setBriefRun(briefResult.data);
     if (dailyBriefingResult.data) setDailyBriefings(dailyBriefingResult.data);
+    if (dailyRunResult.data) setDailyRuns(dailyRunResult.data);
     if (documentResult.data) setDocuments(documentResult.data);
     if (applicationResult.data) setApplications(applicationResult.data);
     if (agentItemResult.data) setAgentItems(agentItemResult.data);
@@ -864,6 +930,8 @@ function Dashboard({ session, onLogout }) {
             <BriefingSettings preferences={preferences} onSave={savePreferences} />
             <aside className="context-note"><Icon name="message" /><div><b>Apple Messages status</b><p>The official OpenAI use-case catalog includes iMessage workflows, but no Apple Messages tool is installed in this workspace yet. The channel remains off until the connector is available and authenticated.</p></div></aside>
           </section>}
+
+          {view === "runs" && <DailyRunsView runs={dailyRuns} />}
 
           {view === "projects" && <section className="view-stack">
             <div className="page-lead"><div><p className="eyebrow">{syncRun?.finished_at ? `Cloud verified ${formatDate(syncRun.finished_at, { year: true, time: true })}` : "Cloud verification starting"}</p><h2>Important project snapshot</h2><p>The highest-value public systems and operating assets across your three brands.</p></div><div className="filter-tabs" aria-label="Filter projects"><button className={brandFilter === "all" ? "active" : ""} onClick={() => setBrandFilter("all")} type="button">All</button>{BRAND_ORDER.map((brand) => <button className={brandFilter === brand ? "active" : ""} onClick={() => setBrandFilter(brand)} key={brand} type="button">{BRAND_META[brand].short}</button>)}</div></div>
