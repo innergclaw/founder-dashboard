@@ -83,6 +83,10 @@ export default function Proposals({ ownerId }) {
       return false;
     } finally { setSavingId(null); }
   }
+  return <ProposalsBoard proposals={proposals} loading={loading} error={error} message={message} savingId={savingId} load={load} save={save} />;
+}
+
+export function ProposalsBoard({ proposals, loading = false, error = "", message = "", savingId = null, load, save }) {
   const total = proposals.reduce((sum, item) => sum + Number(item.budget_max), 0);
   const confirmedCount = proposals.filter((item) => item.status === "confirmed").length;
   return <section className="view-stack proposals-view">

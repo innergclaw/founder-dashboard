@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { supabase } from "./supabase";
 import Proposals from "./Proposals";
+import Account from "./Account";
 import "./styles.css";
 import "./proposals.css";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   ["professional", "Professional", "briefcase"],
   ["schedule", "Schedule", "calendar"],
   ["jobs", "Jobs", "check"],
+  ["account", "Account", "check"],
 ];
 
 const WEALTH_BUILDER_TRAITS = [
@@ -945,6 +947,7 @@ function Dashboard({ session, onLogout }) {
           {view === "agents" && <AgentsWorkspace agents={agents} dispatches={dispatches} jobs={jobs} onDispatched={loadData} />}
           {view === "development" && <DevelopmentView />}
           {view === "proposals" && <Proposals ownerId={FOUNDER_ID} />}
+          {view === "account" && <Account email={session.user.email} />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">
