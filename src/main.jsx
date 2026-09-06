@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { supabase } from "./supabase";
+import Proposals from "./Proposals";
 import "./styles.css";
+import "./proposals.css";
 
 const FOUNDER_ID = "75677100-97b7-4578-92c5-cf131997b580";
 const BRAND_ORDER = ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX"];
@@ -12,6 +14,7 @@ const NAV_ITEMS = [
   ["chief", "Chief of Staff", "message"],
   ["agents", "Agents", "layers"],
   ["projects", "Projects", "layers"],
+  ["proposals", "Proposals", "file"],
   ["development", "Development", "compass"],
   ["professional", "Professional", "briefcase"],
   ["schedule", "Schedule", "calendar"],
@@ -941,6 +944,7 @@ function Dashboard({ session, onLogout }) {
           {view === "chief" && <ChiefOfStaffView items={agentItems} onProcessed={loadData} />}
           {view === "agents" && <AgentsWorkspace agents={agents} dispatches={dispatches} jobs={jobs} onDispatched={loadData} />}
           {view === "development" && <DevelopmentView />}
+          {view === "proposals" && <Proposals ownerId={FOUNDER_ID} />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">

@@ -7,6 +7,7 @@ Private operating dashboard for Nasirr G. Mayo across OWNYOURWEB, INNERGINTEL, a
 - Priority project snapshot with live and repository links
 - Active Codex reminder schedules
 - Founder-only cloud job queue
+- Private proposals with four stages, maximum contract budgets, deadlines, evidence links, and editable result notes
 - GitHub repository freshness and Supabase sync status
 - Hourly cloud briefing engine that prepares alerts before check-in
 - Morning, midday, and evening briefing preferences
@@ -15,6 +16,8 @@ Private operating dashboard for Nasirr G. Mayo across OWNYOURWEB, INNERGINTEL, a
 - Apple Messages shown as pending until an approved connector is available
 
 ## Security model
+
+Proposal records live in `founder_proposals`, not in the public bundle. Status changes save to Supabase with owner-only policies and a concurrent-edit check. "Confirmed" means a written award or agreement. Budget totals represent ceilings, not earned revenue. Email replies do not automatically change proposal statuses. Review a reply and use Update result to record it.
 
 GitHub Pages serves the static interface. Supabase Auth protects access, and Row Level Security restricts all dashboard rows to the founder account ID. No secret or service-role key is shipped to the browser.
 

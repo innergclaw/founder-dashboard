@@ -1,0 +1,50 @@
+@layer components {
+  .sidebar { overflow-y: auto; }
+  .proposal-summary { display: grid; grid-template-columns: 2fr 1fr 1fr; align-items: center; gap: 24px; padding: 28px; border-radius: 16px; background: var(--ink-900); box-shadow: var(--shadow-card); }
+  .proposal-summary > div { display: grid; gap: 8px; }
+  .proposal-summary span, .proposal-summary p { color: var(--muted); font-size: .78rem; }
+  .proposal-summary strong { font-size: 2rem; letter-spacing: -.035em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .proposal-summary > div:first-child strong { color: var(--lime); font-size: clamp(2.3rem, 4vw, 3.5rem); }
+  .proposal-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 16px; }
+  .proposal-lane { min-width: 0; padding: 16px; border-radius: 12px; background: var(--ink-900); }
+  .proposal-lane-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .proposal-lane-heading h3 { font-size: .94rem; }
+  .proposal-lane-heading > span { color: var(--cream-400); font-size: .8rem; font-variant-numeric: tabular-nums; }
+  .proposal-stage-hint { min-height: 52px; margin: 12px 0 16px; color: var(--muted); font-size: .75rem; }
+  .proposal-card { display: grid; min-width: 0; gap: 16px; padding: 16px; margin-top: 16px; border-radius: 10px; background: var(--ink-850); box-shadow: 0 0 0 1px oklch(1 0 0 / .08); }
+  .proposal-card-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .proposal-card-heading > span:last-child { color: var(--muted); font-size: .68rem; }
+  .proposal-card h4 { margin: 0; font-size: 1.1rem; line-height: 1.25; }
+  .proposal-title { margin-top: -8px; color: var(--cream-400); font-size: .8rem; }
+  .proposal-value { display: grid; gap: 4px; padding-block: 8px; }
+  .proposal-value strong { font-size: 1.8rem; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+  .proposal-value span { color: var(--muted); font-size: .7rem; }
+  .proposal-dates { display: grid; gap: 8px; margin: 0; font-size: .72rem; }
+  .proposal-dates > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; }
+  .proposal-dates dt { color: var(--muted); }
+  .proposal-dates dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .proposal-note { display: grid; gap: 8px; }
+  .proposal-note p { color: var(--cream-400); font-size: .78rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .proposal-links { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--cream-100); font-size: .75rem; }
+  .proposal-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  .proposal-links a:hover { color: var(--lime); }
+  .proposal-empty { padding: 28px 8px; color: var(--muted); font-size: .8rem; text-align: center; }
+  .proposal-editor { display: grid; gap: 16px; }
+  .proposal-editor label { display: grid; gap: 8px; color: var(--cream-400); font-size: .75rem; }
+  .proposal-editor :is(select, textarea) { width: 100%; min-height: 44px; padding: 12px; color: var(--cream-50); background: var(--ink-950); border: 1px solid var(--ink-800); border-radius: 8px; font: inherit; }
+  .proposal-editor textarea { resize: vertical; }
+  .proposal-editor p, .proposal-footnote { color: var(--muted); font-size: .76rem; }
+  .proposals-view :is(button, select, textarea, a):focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; }
+  .proposals-view :disabled { opacity: .6; cursor: wait; }
+  .proposal-save-message { color: var(--lime); font-size: .85rem; }
+}
+@layer responsive {
+  @media (max-width: 1450px) { .proposal-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 650px) {
+    .proposal-board { grid-template-columns: minmax(0, 1fr); }
+    .proposal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 20px; }
+    .proposal-summary > div:first-child { grid-column: 1 / -1; }
+    .proposal-stage-hint { min-height: 0; }
+    .proposals-view .page-lead { align-items: start; }
+  }
+}
