@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { supabase } from "./supabase";
 import Proposals from "./Proposals";
 import Account from "./Account";
+import Comments from "./Comments";
 import "./styles.css";
 import "./proposals.css";
 
@@ -11,6 +12,7 @@ const BRAND_ORDER = ["OWNYOURWEB", "INNERGINTEL", "SHOPNASGFX"];
 const NAV_ITEMS = [
   ["overview", "Overview", "grid"],
   ["briefing", "Briefing", "bell"],
+  ["comments", "comments", "message"],
   ["runs", "Daily Runs", "refresh"],
   ["chief", "Chief of Staff", "message"],
   ["agents", "Agents", "layers"],
@@ -886,7 +888,7 @@ function Dashboard({ session, onLogout }) {
   const health = projects.length ? Math.round(projects.reduce((sum, project) => sum + project.health, 0) / projects.length) : 0;
   const focus = openJobs.find((job) => job.priority === "urgent") || openJobs.find((job) => job.priority === "high");
 
-  return <div className="dashboard-shell">
+  return <div className="dashboard-shell" data-view={view}>
     <aside className={`sidebar ${mobileOpen ? "is-open" : ""}`}>
       <div className="sidebar-brand"><div className="founder-mark compact"><span>N</span><i /></div><div><b>NASIRR MAYO</b><small>Founder Dashboard</small></div></div>
       <nav aria-label="Dashboard navigation">{NAV_ITEMS.map(([id, label, icon]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)} type="button"><Icon name={icon} /><span>{label}</span>{id === "jobs" && openJobs.length > 0 && <b>{openJobs.length}</b>}{id === "briefing" && unreadAlerts.length > 0 && <b>{unreadAlerts.length}</b>}</button>)}</nav>
@@ -948,6 +950,7 @@ function Dashboard({ session, onLogout }) {
           {view === "development" && <DevelopmentView />}
           {view === "proposals" && <Proposals ownerId={FOUNDER_ID} />}
           {view === "account" && <Account email={session.user.email} />}
+          {view === "comments" && <Comments />}
           {view === "professional" && <ProfessionalWorkspace documents={documents} applications={applications} onOpenDocument={openDocument} onUploadDocument={uploadDocument} onApplicationStatus={updateApplicationStatus} />}
 
           {view === "schedule" && <section className="view-stack">
